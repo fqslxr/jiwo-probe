@@ -1,6 +1,6 @@
 # Jiwo Probe（鸡窝状态站）
 
-妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `6221dd1`，2026-08-17 已吸收上游 `bug fix`：计费口径工具 traffic-display / 趋势弹窗重做 / 卡片计费值修正，跳过大面积冲突的 App/Premium UI 重构）。
+妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（功能基线 `d706d7e`，2026-08-22；最新转发链 WS 数据、固定切换位置、浅色修复和每日流量堆叠柱状图已按本 fork 架构移植）。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chnnic/jiwo-probe)
 
@@ -85,6 +85,14 @@
 - **流量计费口径面板**（premium drawer 照主控实测）——本周期计费用量（`traffic_used` 计费口径）/ 计费口径（系统网卡·Xray 节点 × 上行+下行/仅上行/仅下行/取较大值）/ 原始周期 上下行 / 对账调整 / 对账公式（总量 − 调整 = 计费用量）/ 计费周期 / 本次开机网卡，黑金白金双适配
 - **单向计费修正**——premium 卡片/计费面板统一优先 `traffic_used`（计费口径）而非 `traffic_used_total`（双向物理值）：`traffic_stats_mode = upload/download/max` 的单向计费机器（如 GoMami 仅上行）不再显示翻倍流量；计费口径 mode 取值统一为上游 `upload / download / max`（`traffic-display.ts` 工具）
 - **bytes 格式化去冗余 .0**——`1000.0 GB` → `1000 GB`（含四舍五入后恰为 X.0 的值），非整数精度不变
+
+### ProbeHub 主控降载
+
+- **全局单上游 WebSocket**——使用固定名称的 Cloudflare Durable Object 聚合所有访客连接；无论同时打开多少页面，主控正常情况下只保留一条探针 WebSocket，再由 ProbeHub 将实时帧广播给访客
+- **实时帧复用**——`/api/probe` 优先读取 Hub 最近收到的 WS 帧，并叠加 3 秒边缘微缓存，避免页面首屏和轮询重复触发主控生成完整探针数据
+- **自动恢复与回退**——主控 WS 断开后指数退避重连；Hub 快照或连接异常时自动回退原有直连，不牺牲页面可用性
+- **按需运行**——首名访客进入时建立上游连接，最后一名访客离开 30 秒后自动关闭，降低 Durable Object 空闲时长
+- **零手动配置**——Durable Object 声明已写入 `wrangler.jsonc`，新安装和已有部署更新时均自动创建并绑定；可通过 `X-Probe-Source: hub` / `origin-fallback` 响应头确认运行路径
 
 ### 手机端适配
 
@@ -249,7 +257,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 上游同步
 
-本 fork 基于上游 `6221dd1`（2026-08-17 `bug fix`，已吸收）：上游同 commit 把趋势弹窗重做为「原始上下行日流量趋势」（当前周期/最近 7 日 + 原始合计 + 计费说明）并新增 `traffic-display.ts` 计费口径工具（`billableTraffic` / `trafficRuleLabel` / `trafficFormulaLabel` / `dailyTrafficRows` 等，本地计费面板/drawer 日流量已接入）、`traffic_stats_mode` 取值修正（`upload / download / max`，本地原误判 `oneway` 导致单向计费机器显示异常）、`server-name.ts` 旗标修正、`RegionGlobe` 动态刷新、`types.ts` 规范化（保留本地 ThemeName union 与 license_badge union）；同 commit 的 App.tsx / PremiumProbePage.tsx / styles.css 大改（TrafficDialog 重做等）曾与本地定制大面积冲突，经拆分后已按用户要求将 TrafficDialog 核心（范围切换/三线切换/面板撑满免滚动）整体移植，其余无关重构跳过。更早吸收：`8d82a8b` 移除登录；`ce624cf` twemoji 本地化（public/twemoji/ ~3650 个本地 SVG，零外部依赖）；`3ed41ca` Premium 黑金 PRO 主题；`be3d03c`（表格网速列纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，跳过；`5ce90c0` 探针表格优化（表格流量列增强）；基线 `2dc05b3`（2026-08-10）。后续本地迭代：流量计费口径 draw 面板、趋势弹窗三线切换与手机端免滚动撑满、卡片单向计费修正、白金水印等。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 的功能基线已提升到上游 `d706d7e`（2026-08-22）。`d706d7e`、`31f7a4b`、`bd651cb`、`f6fc04b` 的转发链网络状况能力已按本 fork 架构移植：优先读取 WS `payload.forward`、HTTP 兜底、按服务器/转发链固定位置切换、浅色主题与布局抖动修复、按组切换的每日流量堆叠柱状图。此前 `6221dd1` 的原始上下行趋势、计费口径工具、`traffic_stats_mode` 修正、服务器旗标和动态地区图也已吸收；与本地七套主题、Ran/Premium 定制大面积冲突的结构性重构没有直接覆盖，而是逐项移植功能，避免界面回退。更早吸收：`8d82a8b` 移除登录；`ce624cf` twemoji 本地化（public/twemoji/ ~3650 个本地 SVG，零外部依赖）；`3ed41ca` Premium 黑金 PRO 主题；`be3d03c`（表格网速列纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，跳过；`5ce90c0` 探针表格优化（表格流量列增强）；基线 `2dc05b3`（2026-08-10）。后续本地迭代：ProbeHub 全局连接聚合、流量计费口径 drawer、趋势弹窗三线切换与手机端免滚动撑满、卡片单向计费修正、白金水印等。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
