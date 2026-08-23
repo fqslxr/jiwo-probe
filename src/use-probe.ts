@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { createContext, createElement, useContext, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { ProbeAppearance, ProbePayload, ProbeServer, ThemeName } from './types'
 
 const APPEARANCE_CACHE = 'mmwx-probe-appearance'
@@ -287,7 +288,14 @@ function applyFavicon(icon?: string) {
   link.href = href
 }
 
-export function useProbe(): { data?: ProbePayload; error?: string } {
+export interface ProbeState {
+  data?: ProbePayload
+  error?: string
+}
+
+const ProbeContext = createContext<ProbeState | null>(null)
+
+function useProbeConnection(): ProbeState {
   const [data, setData] = useState<ProbePayload>()
   const [error, setError] = useState<string>()
   const timer = useRef<number | undefined>(undefined)
@@ -373,4 +381,17 @@ export function useProbe(): { data?: ProbePayload; error?: string } {
   }, [])
 
   return { data, error }
+}
+
+// 全站只在 Provider 内建立一套 HTTP/WS 连接。各主题调用 useProbe() 时只读取
+// 同一个 Context，避免 Root + App/Ran 为每个标签页重复连接主控。
+export function ProbeProvider({ children }: { children: ReactNode }) {
+  const value = useProbeConnection()
+  return createElement(ProbeContext.Provider, { value }, children)
+}
+
+export function useProbe(): ProbeState {
+  const value = useContext(ProbeContext)
+  if (!value) throw new Error('useProbe must be used within ProbeProvider')
+  return value
 }

@@ -4,6 +4,14 @@ interface Env {
   PROBE_TOKEN: string
 }
 
+const PROBE_CACHE_TTL_SECONDS = 3
+
+type CloudflareCacheStorage = CacheStorage & { default: Cache }
+
+function edgeCache(): Cache {
+  return (caches as CloudflareCacheStorage).default
+}
+
 const routes: Record<string, string> = {
   '/api/probe': '/api/public/probe-servers',
   '/api/series': '/api/public/probe-series',
@@ -24,8 +32,30 @@ function upstreamURL(request: Request, env: Env): URL | null {
   return origin
 }
 
+function probeCacheKey(request: Request): Request | null {
+  const incoming = new URL(request.url)
+  if (incoming.pathname !== '/api/probe') return null
+  // /api/probe 没有查询参数语义。统一 cache key，避免随机查询串绕过微缓存。
+  incoming.search = ''
+  return new Request(incoming.toString(), { method: 'GET' })
+}
+
+function clientResponse(response: Response, cacheStatus: 'HIT' | 'MISS' | 'BYPASS'): Response {
+  const headers = new Headers(response.headers)
+  // Cache API 的副本可共享 3 秒；浏览器端仍不落盘，避免显示陈旧状态。
+  headers.set('Cache-Control', 'private, no-store')
+  headers.set('X-Probe-Cache', cacheStatus)
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.delete('set-cookie')
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const incoming = new URL(request.url)
     if (incoming.pathname === '/login') {
       return Response.redirect(new URL('/login', env.MMWX_ORIGIN).toString(), 302)
@@ -70,6 +100,12 @@ export default {
       return new Response('Probe access secret is not configured', { status: 503 })
     }
 
+    const cacheKey = probeCacheKey(request)
+    if (cacheKey) {
+      const cached = await edgeCache().match(cacheKey)
+      if (cached) return clientResponse(cached, 'HIT')
+    }
+
     const headers = new Headers(request.headers)
     headers.delete('cookie')
     headers.delete('authorization')
@@ -81,13 +117,26 @@ export default {
     if (upstream.status === 101 || upstream.webSocket) return upstream
 
     const responseHeaders = new Headers(upstream.headers)
-    responseHeaders.set('Cache-Control', 'no-store')
     responseHeaders.set('X-Content-Type-Options', 'nosniff')
     responseHeaders.delete('set-cookie')
-    return new Response(upstream.body, {
+    const response = new Response(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
       headers: responseHeaders,
     })
+
+    if (cacheKey && upstream.ok) {
+      const cacheCopy = response.clone()
+      const cacheHeaders = new Headers(cacheCopy.headers)
+      cacheHeaders.set('Cache-Control', `public, max-age=${PROBE_CACHE_TTL_SECONDS}`)
+      ctx.waitUntil(edgeCache().put(cacheKey, new Response(cacheCopy.body, {
+        status: cacheCopy.status,
+        statusText: cacheCopy.statusText,
+        headers: cacheHeaders,
+      })))
+      return clientResponse(response, 'MISS')
+    }
+
+    return clientResponse(response, 'BYPASS')
   },
 } satisfies ExportedHandler<Env>

@@ -1,7 +1,7 @@
 import { lazy, StrictMode, Suspense, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { applyAppearance, getActiveTheme, useProbe } from './use-probe'
+import { applyAppearance, getActiveTheme, ProbeProvider, useProbe } from './use-probe'
 import './styles.css'
 
 // Ran 主题界面（复刻 Komari-Ran-Theme · 精密金工质感），懒加载保持首屏体积。
@@ -39,6 +39,8 @@ function Root() {
 applyAppearance()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <ProbeProvider>
+      <Root />
+    </ProbeProvider>
   </StrictMode>,
 )
