@@ -4,6 +4,20 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-07-31",
   "keep_vars": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PROBE_HUB",
+        "class_name": "ProbeHub"
+      }
+    ]
+  },
+  "exports": {
+    "ProbeHub": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

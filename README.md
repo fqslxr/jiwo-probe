@@ -100,16 +100,21 @@
 ## 工作方式
 
 ```text
-浏览器 ──HTTPS/WS──> Cloudflare Worker ──携带 PROBE_TOKEN──> 妙妙屋 X 主控
+多个浏览器 ──HTTPS/WS──> Cloudflare Worker ──> 全局 ProbeHub ──单条 WS──> 妙妙屋 X 主控
+                                      └──── 故障时自动直连回退 ────┘
 ```
 
-Worker 仅代理三个固定路径，不接受访客指定上游地址，因此不会形成开放代理：
+`ProbeHub` 由 Cloudflare Durable Object 承载。所有访问域名和边缘节点使用同一个固定实例，共享一条到主控的 WebSocket，再把每个实时帧广播给访客；最后一名访客离开 30 秒后自动断开上游。这样访客数增加时，不再按访客数增加主控 WebSocket 和实时数据查询。
 
-| 对外路径 | 主控路径 | 用途 |
+Worker 仅处理三个固定路径，不接受访客指定上游地址，因此不会形成开放代理：
+
+| 对外路径 | 处理方式 | 用途 |
 | --- | --- | --- |
-| `/api/probe` | `/api/public/probe-servers` | 服务器状态 |
-| `/api/series` | `/api/public/probe-series` | 延迟与丢包率历史 |
-| `/api/stream` | `/api/public/probe-ws` | 实时 WebSocket |
+| `/api/probe` | ProbeHub 最新帧 + 3 秒边缘微缓存 | 服务器状态 |
+| `/api/series` | 直连 `/api/public/probe-series` | 延迟与丢包率历史 |
+| `/api/stream` | ProbeHub 共享单条上游 WebSocket | 实时 WebSocket |
+
+ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不影响页面可用性。响应头 `X-Probe-Source: hub` 表示命中 Hub，`origin-fallback` 表示当次使用了回退。
 
 ## 准备工作
 
@@ -142,6 +147,7 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    | `PROBE_TOKEN` | Secret | 主控"系统设置 → 探针"生成的访问密钥 |
 
    注意这里是 Worker 的运行时 **Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。
+   Durable Object 绑定和首次命名空间创建已经写在 `wrangler.jsonc`，构建部署时会自动完成，**不需要在 Dashboard 手动创建或开启 ProbeHub**。
 5. 打开 Worker 地址，确认服务器列表、趋势图和实时更新正常。
 6. 最后回到主控，开启"仅允许独立探针访问"。此后直接访问主控的探针接口会返回 `404`。
 
@@ -182,6 +188,8 @@ fork 自带 `sync-upstream.yml` 工作流（纯 shell git 实现，零 action �
    ```bash
    npm run deploy
    ```
+
+   `wrangler.jsonc` 会在首次部署时自动创建并绑定 ProbeHub Durable Object，已有部署者更新代码后执行同一条命令即可，无需额外开关。
 
 5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
 
@@ -228,13 +236,14 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 更新与密钥轮换
 
-更新代码后执行 `npm ci && npm run deploy`。轮换密钥时，先在主控生成新密钥，立即执行 `npx wrangler secret put PROBE_TOKEN` 并重新部署；在 Worker 更新完成前，探针可能短暂返回 `404`。主控只保存密钥的 SHA-256 哈希，无法找回旧密钥。
+更新代码后执行 `npm ci && npm run deploy`。首次更新到带 ProbeHub 的版本时，Wrangler 会自动创建和绑定 Durable Object，无需手动配置；Cloudflare 网页部署同样会按仓库中的配置自动处理。轮换密钥时，先在主控生成新密钥，立即执行 `npx wrangler secret put PROBE_TOKEN` 并重新部署；在 Worker 更新完成前，探针可能短暂返回 `404`。主控只保存密钥的 SHA-256 哈希，无法找回旧密钥。
 
 ## 故障排查
 
 - `503 Probe access secret is not configured`：尚未设置 `PROBE_TOKEN`。
 - Worker 返回 `404`：Worker Secret 与主控生成的密钥不一致，或主控探针未启用。
 - 页面无实时更新：检查 Cloudflare 与源站反向代理是否允许 WebSocket；页面会自动使用 HTTP 轮询。
+- 想确认 ProbeHub 是否生效：检查 `/api/probe` 响应头是否为 `X-Probe-Source: hub`；`origin-fallback` 表示 Hub 当次异常并已自动直连主控。
 - `MMWX_ORIGIN must use HTTPS`：生产源站不是 HTTPS。本地调试仅允许 `localhost` 或 `127.0.0.1`。
 - 页面没有服务器：在主控探针设置中选择需要展示的服务器。
 
