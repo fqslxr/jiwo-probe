@@ -10,6 +10,9 @@
       },
       "PROBE_TOKEN": {
         "description": "在主控的 **系统设置 → 探针** 中生成的独立探针访问密钥。"
+      },
+      "PROBE_POLL_INTERVAL_SECONDS": {
+        "description": "ProbeHub 从主控采集实时快照的间隔（秒），默认 3；需要降载时可设置为 5。"
       }
     }
   },

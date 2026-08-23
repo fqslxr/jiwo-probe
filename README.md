@@ -88,10 +88,11 @@
 
 ### ProbeHub 主控降载
 
-- **全局单上游 WebSocket**——使用固定名称的 Cloudflare Durable Object 聚合所有访客连接；无论同时打开多少页面，主控正常情况下只保留一条探针 WebSocket，再由 ProbeHub 将实时帧广播给访客
-- **实时帧复用**——`/api/probe` 优先读取 Hub 最近收到的 WS 帧，并叠加 3 秒边缘微缓存，避免页面首屏和轮询重复触发主控生成完整探针数据
-- **自动恢复与回退**——主控 WS 断开后指数退避重连；Hub 快照或连接异常时自动回退原有直连，不牺牲页面可用性
-- **按需运行**——首名访客进入时建立上游连接，最后一名访客离开 30 秒后自动关闭，降低 Durable Object 空闲时长
+- **全局单采集器**——使用固定名称的 Cloudflare Durable Object 聚合所有访客连接；无论同时打开多少页面，主控正常情况下只承受一个 ProbeHub 的定时快照请求，再由 ProbeHub 将实时帧广播给访客
+- **3 秒实时刷新**——ProbeHub 默认每 3 秒从主控获取一次完整快照；`/api/probe` 优先复用最近快照并叠加 3 秒边缘微缓存，避免页面首屏和轮询重复触发主控生成数据
+- **可配置降载**——运行时变量 `PROBE_POLL_INTERVAL_SECONDS` 默认为 `3`；需要降低主控数据库压力时设为 `5` 即可恢复 5 秒采集，无需修改代码
+- **自动恢复与回退**——单次快照失败不会停止后续采集；Hub 异常时 HTTP 请求自动回退原有直连，不牺牲页面可用性
+- **按需运行**——首名访客进入时启动采集，最后一名访客离开 30 秒后自动停止，降低 Durable Object 空闲时长
 - **零手动配置**——Durable Object 声明已写入 `wrangler.jsonc`，新安装和已有部署更新时均自动创建并绑定；可通过 `X-Probe-Source: hub` / `origin-fallback` 响应头确认运行路径
 
 ### 手机端适配
@@ -108,11 +109,11 @@
 ## 工作方式
 
 ```text
-多个浏览器 ──HTTPS/WS──> Cloudflare Worker ──> 全局 ProbeHub ──单条 WS──> 妙妙屋 X 主控
+多个浏览器 ──HTTPS/WS──> Cloudflare Worker ──> 全局 ProbeHub ──每 3 秒单次快照──> 妙妙屋 X 主控
                                       └──── 故障时自动直连回退 ────┘
 ```
 
-`ProbeHub` 由 Cloudflare Durable Object 承载。所有访问域名和边缘节点使用同一个固定实例，共享一条到主控的 WebSocket，再把每个实时帧广播给访客；最后一名访客离开 30 秒后自动断开上游。这样访客数增加时，不再按访客数增加主控 WebSocket 和实时数据查询。
+`ProbeHub` 由 Cloudflare Durable Object 承载。所有访问域名和边缘节点使用同一个固定实例，默认每 3 秒向主控请求一次完整快照，再把快照广播给所有访客；最后一名访客离开 30 秒后停止采集。这样访客数增加时，不再按访客数增加主控实时数据查询。需要降低数据库压力时，将运行时变量 `PROBE_POLL_INTERVAL_SECONDS` 设置为 `5` 即可切回 5 秒。
 
 Worker 仅处理三个固定路径，不接受访客指定上游地址，因此不会形成开放代理：
 
@@ -153,6 +154,7 @@ ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不�
    | --- | --- | --- |
    | `MMWX_ORIGIN` | Text | 主控 HTTPS 地址，例如 `https://panel.example.com` |
    | `PROBE_TOKEN` | Secret | 主控"系统设置 → 探针"生成的访问密钥 |
+   | `PROBE_POLL_INTERVAL_SECONDS` | Text（可选） | 实时快照间隔，默认 `3`；降载时可设为 `5` |
 
    注意这里是 Worker 的运行时 **Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。
    Durable Object 绑定和首次命名空间创建已经写在 `wrangler.jsonc`，构建部署时会自动完成，**不需要在 Dashboard 手动创建或开启 ProbeHub**。
@@ -197,7 +199,7 @@ fork 自带 `sync-upstream.yml` 工作流（纯 shell git 实现，零 action �
    npm run deploy
    ```
 
-   `wrangler.jsonc` 会在首次部署时自动创建并绑定 ProbeHub Durable Object，已有部署者更新代码后执行同一条命令即可，无需额外开关。
+   `wrangler.jsonc` 会在首次部署时自动创建并绑定 ProbeHub Durable Object，已有部署者更新代码后执行同一条命令即可，无需额外开关。默认采用 3 秒采集；如需恢复 5 秒，在 Worker 运行时变量中设置 `PROBE_POLL_INTERVAL_SECONDS=5`，保存并部署即可。
 
 5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
 
@@ -218,6 +220,7 @@ cp .dev.vars.example .dev.vars
 ```dotenv
 MMWX_ORIGIN=https://panel.example.com
 PROBE_TOKEN=主控生成的访问密钥
+PROBE_POLL_INTERVAL_SECONDS=3
 ```
 
 分别启动 Worker 和 Vite：
@@ -252,6 +255,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 - Worker 返回 `404`：Worker Secret 与主控生成的密钥不一致，或主控探针未启用。
 - 页面无实时更新：检查 Cloudflare 与源站反向代理是否允许 WebSocket；页面会自动使用 HTTP 轮询。
 - 想确认 ProbeHub 是否生效：检查 `/api/probe` 响应头是否为 `X-Probe-Source: hub`；`origin-fallback` 表示 Hub 当次异常并已自动直连主控。
+- 3 秒采集使 PostgreSQL 压力偏高：将 Worker 运行时变量 `PROBE_POLL_INTERVAL_SECONDS` 设为 `5` 并重新部署，即可回到 5 秒采集。
 - `MMWX_ORIGIN must use HTTPS`：生产源站不是 HTTPS。本地调试仅允许 `localhost` 或 `127.0.0.1`。
 - 页面没有服务器：在主控探针设置中选择需要展示的服务器。
 

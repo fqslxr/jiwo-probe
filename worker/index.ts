@@ -3,12 +3,15 @@ interface Env {
   MMWX_ORIGIN: string
   PROBE_TOKEN: string
   PROBE_HUB: DurableObjectNamespace
+  PROBE_POLL_INTERVAL_SECONDS?: string
 }
 
 const PROBE_CACHE_TTL_SECONDS = 3
 const HUB_SNAPSHOT_MAX_AGE_MS = 12_000
 const HUB_IDLE_CLOSE_MS = 30_000
-const HUB_RECONNECT_MAX_MS = 30_000
+const HUB_DEFAULT_POLL_MS = 3_000
+const HUB_MIN_POLL_MS = 3_000
+const HUB_MAX_POLL_MS = 60_000
 const HUB_NAME = 'global'
 const HUB_CLIENT_TAG = 'probe-client'
 
@@ -91,6 +94,13 @@ function hubStub(env: Env): DurableObjectStub {
   return env.PROBE_HUB.getByName(HUB_NAME)
 }
 
+function hubPollIntervalMs(env: Env): number {
+  if (!env.PROBE_POLL_INTERVAL_SECONDS) return HUB_DEFAULT_POLL_MS
+  const milliseconds = Number(env.PROBE_POLL_INTERVAL_SECONDS) * 1_000
+  if (!Number.isFinite(milliseconds)) return HUB_DEFAULT_POLL_MS
+  return Math.min(HUB_MAX_POLL_MS, Math.max(HUB_MIN_POLL_MS, Math.round(milliseconds)))
+}
+
 async function directUpstream(request: Request, env: Env, target: URL): Promise<Response> {
   return fetch(new Request(target, {
     method: 'GET',
@@ -100,16 +110,14 @@ async function directUpstream(request: Request, env: Env, target: URL): Promise<
 
 /**
  * 全局 ProbeHub：无论 Worker 有多少访问域名或边缘节点，固定名称都映射到同一个
- * Durable Object。所有浏览器共享它到主控的一条 WebSocket。
+ * Durable Object。所有浏览器共享同一个定时快照采集器。
  */
 export class ProbeHub implements DurableObject {
   private readonly state: DurableObjectState
   private readonly env: Env
-  private upstream: WebSocket | null = null
-  private connecting: Promise<void> | null = null
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly pollIntervalMs: number
   private idleTimer: ReturnType<typeof setTimeout> | null = null
-  private reconnectAttempts = 0
+  private pollTimer: ReturnType<typeof setInterval> | null = null
   private latestPayload: string | null = null
   private latestAt = 0
   private snapshotRequest: Promise<string> | null = null
@@ -117,6 +125,7 @@ export class ProbeHub implements DurableObject {
   constructor(state: DurableObjectState, env: Env) {
     this.state = state
     this.env = env
+    this.pollIntervalMs = hubPollIntervalMs(env)
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -159,7 +168,7 @@ export class ProbeHub implements DurableObject {
     } else {
       this.state.waitUntil(this.seedClientsFromSnapshot())
     }
-    this.state.waitUntil(this.ensureUpstream())
+    this.startPolling()
 
     return new Response(null, {
       status: 101,
@@ -192,7 +201,7 @@ export class ProbeHub implements DurableObject {
     try {
       await this.ensureSnapshot()
     } catch (error) {
-      // The upstream WebSocket can still deliver the first frame.
+      // The scheduled poll will retry after a failed initial snapshot.
       console.warn('ProbeHub initial snapshot failed', error)
     }
   }
@@ -222,50 +231,33 @@ export class ProbeHub implements DurableObject {
     return payload
   }
 
-  private async ensureUpstream(): Promise<void> {
-    if (!this.clients().length) return
-    if (this.upstream && (this.upstream.readyState === WebSocket.OPEN || this.upstream.readyState === WebSocket.CONNECTING)) {
+  private async forceSnapshotRefresh(): Promise<void> {
+    if (this.snapshotRequest) {
+      await this.snapshotRequest
       return
     }
-    if (this.connecting) return this.connecting
-
-    this.connecting = this.connectUpstream()
+    this.snapshotRequest = this.fetchSnapshot()
     try {
-      await this.connecting
+      await this.snapshotRequest
     } catch (error) {
-      console.error('ProbeHub upstream connection failed', error)
-      this.scheduleReconnect()
+      console.error('ProbeHub scheduled snapshot failed', error)
     } finally {
-      this.connecting = null
+      this.snapshotRequest = null
     }
   }
 
-  private async connectUpstream(): Promise<void> {
-    const response = await fetch(originURL(this.env, '/api/public/probe-ws'), {
-      headers: {
-        Upgrade: 'websocket',
-        'X-MMwx-Probe-Token': this.env.PROBE_TOKEN,
-      },
-    })
-    const socket = response.webSocket
-    if (response.status !== 101 || !socket) {
-      throw new Error(`upstream websocket returned ${response.status}`)
-    }
+  private startPolling(): void {
+    if (this.pollTimer) return
+    this.state.waitUntil(this.forceSnapshotRefresh())
+    this.pollTimer = setInterval(() => {
+      this.state.waitUntil(this.forceSnapshotRefresh())
+    }, this.pollIntervalMs)
+  }
 
-    socket.accept()
-    this.upstream = socket
-    this.reconnectAttempts = 0
-    this.cancelReconnect()
-
-    socket.addEventListener('message', (event) => {
-      if (this.upstream !== socket) return
-      const payload = typeof event.data === 'string'
-        ? event.data
-        : new TextDecoder().decode(event.data)
-      if (payload) this.rememberAndBroadcast(payload)
-    })
-    socket.addEventListener('close', () => this.onUpstreamClosed(socket))
-    socket.addEventListener('error', () => this.onUpstreamClosed(socket))
+  private stopPolling(): void {
+    if (!this.pollTimer) return
+    clearInterval(this.pollTimer)
+    this.pollTimer = null
   }
 
   private rememberAndBroadcast(payload: string): void {
@@ -284,53 +276,21 @@ export class ProbeHub implements DurableObject {
     }
   }
 
-  private onUpstreamClosed(socket: WebSocket): void {
-    if (this.upstream !== socket) return
-    this.upstream = null
-    if (this.clients().length) this.scheduleReconnect()
-  }
-
   private onClientCountChanged(): void {
     if (this.clients().length) {
       this.cancelIdleClose()
-      this.state.waitUntil(this.ensureUpstream())
+      this.startPolling()
     } else {
       this.scheduleIdleClose()
     }
   }
 
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer || !this.clients().length) return
-    const delay = Math.min(1_000 * (2 ** this.reconnectAttempts), HUB_RECONNECT_MAX_MS)
-    this.reconnectAttempts += 1
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null
-      this.state.waitUntil(this.ensureUpstream())
-    }, delay)
-  }
-
-  private cancelReconnect(): void {
-    if (!this.reconnectTimer) return
-    clearTimeout(this.reconnectTimer)
-    this.reconnectTimer = null
-  }
-
   private scheduleIdleClose(): void {
     if (this.idleTimer) return
-    this.cancelReconnect()
     this.idleTimer = setTimeout(() => {
       this.idleTimer = null
       if (this.clients().length) return
-      const socket = this.upstream
-      this.upstream = null
-      this.reconnectAttempts = 0
-      if (socket) {
-        try {
-          socket.close(1000, 'ProbeHub idle')
-        } catch {
-          // Upstream already closed.
-        }
-      }
+      this.stopPolling()
     }, HUB_IDLE_CLOSE_MS)
   }
 
