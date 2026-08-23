@@ -111,5 +111,49 @@ export interface ProbePayload {
     name?: string
     display_name?: string
   }>
+  forward?: ForwardChainData[]
   servers?: ProbeServer[]
+}
+
+export interface ForwardChainServerData {
+  name: string
+  to_next_ms: number
+  healthy: boolean
+}
+
+export interface ForwardChainGroupData {
+  name: string
+  role: 'entry' | 'mid' | 'exit'
+  to_next_ms: number
+  servers: ForwardChainServerData[]
+}
+
+export interface ForwardChainBucket {
+  ts: number
+  e2e_ms: number
+  loss: number
+}
+
+export interface ForwardTrafficServer {
+  name: string
+  group: string
+  role: string
+  daily_gb: number[]
+  total_gb: number
+}
+
+export interface ForwardChainTraffic {
+  days: string[]
+  servers: ForwardTrafficServer[]
+  total_gb: number
+}
+
+export interface ForwardChainData {
+  name: string
+  end_to_end_ms: number
+  loss_pct: number
+  groups: ForwardChainGroupData[]
+  bucket_sec: number
+  trend: ForwardChainBucket[]
+  traffic?: ForwardChainTraffic | null
 }

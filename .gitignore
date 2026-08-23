@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-backup-*/
 .wrangler/
 wrangler.local.jsonc
 .dev.vars
@@ -9,3 +10,4 @@ wrangler.local.jsonc
 *.tsbuildinfo
 .env.kv
 .wrangler-deploy.jsonc
+HANDOVER.md

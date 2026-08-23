@@ -4089,3 +4089,660 @@
 :root.theme-premium.platinum .premium-probe-traffic-note {
   color: #746b5c;
 }
+
+/* ============ 网络状况 → 转发链视图 ============ */
+.premium-probe-forward {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.premium-probe-forward-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #8f867a;
+  border: 1px dashed var(--pp-border);
+  border-radius: 14px;
+}
+
+.premium-probe-forward-chainbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.premium-probe-forward-chainbar > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--pp-gold);
+}
+.premium-probe-forward-chainbar .k {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8f867a;
+}
+.premium-probe-forward-chaintabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.premium-probe-forward-chaintabs button {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #a9a08c;
+  background: var(--pp-panel);
+  border: 1px solid var(--pp-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.premium-probe-forward-chaintabs button.is-active {
+  color: #1a1406;
+  background: var(--pp-gold);
+  border-color: var(--pp-gold);
+}
+
+/* 转发组流量:堆叠柱状图(替代宽表格,1 个月周期也放得下) */
+.premium-probe-forward-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.premium-probe-forward-grouptabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.premium-probe-forward-grouptabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #a9a08c;
+  background: var(--pp-panel);
+  border: 1px solid var(--pp-border);
+  border-radius: 9px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.premium-probe-forward-grouptabs button:hover {
+  border-color: var(--pp-gold);
+}
+.premium-probe-forward-grouptabs button.is-active {
+  color: #f3e6c6;
+  border-color: var(--pp-gold);
+  background: rgba(216, 180, 106, 0.12);
+}
+.premium-probe-forward-grouptabs button .g {
+  font-weight: 700;
+}
+.premium-probe-forward-grouptabs button .rl {
+  padding: 2px 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 5px;
+}
+.premium-probe-forward-grouptabs button .t {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  color: var(--pp-gold);
+}
+.premium-probe-forward-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 20px;
+  font-size: 12px;
+  color: #a9a08c;
+}
+.premium-probe-forward-chart-head .total {
+  font-size: 12.5px;
+}
+.premium-probe-forward-chart-head .total b,
+.premium-probe-forward-chart-head .s b,
+.premium-probe-forward-chart-head .sum {
+  color: var(--pp-gold);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+.premium-probe-forward-chart-head .d {
+  font-weight: 750;
+  color: #e9dcbf;
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward-chart-head .s {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.premium-probe-forward-chart-head .s b {
+  margin-left: 3px;
+}
+.premium-probe-forward-chart-head .s i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.premium-probe-forward-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.premium-probe-forward-chart svg {
+  width: 100%;
+  height: 200px;
+  display: block;
+  overflow: visible;
+}
+.premium-probe-forward-chart svg rect {
+  transition: opacity 0.12s;
+}
+.premium-probe-forward-chart-xaxis {
+  display: flex;
+}
+.premium-probe-forward-chart-xaxis span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: #7d7462;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 统计卡 */
+.premium-probe-forward-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.premium-probe-forward-stats .stat {
+  position: relative;
+  padding: 16px 18px;
+  background: var(--pp-panel);
+  border: 1px solid var(--pp-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.premium-probe-forward-stats .stat::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--edge, var(--pp-gold));
+  opacity: 0.7;
+}
+.premium-probe-forward-stats .stat .k {
+  font-size: 12px;
+  color: #9a917d;
+  margin-bottom: 10px;
+}
+.premium-probe-forward-stats .stat .v {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward-stats .stat .v .u {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9a917d;
+  margin-left: 3px;
+}
+.premium-probe-forward-stats .stat .foot {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #776e60;
+}
+.premium-probe-forward-stats .stat.is-gold .v {
+  color: var(--pp-gold-bright);
+}
+.premium-probe-forward-stats .stat.is-ok .v {
+  color: #6bd39a;
+}
+.premium-probe-forward-stats .stat.is-ok {
+  --edge: #6bd39a;
+}
+.premium-probe-forward-stats .stat.is-n .v {
+  color: #f3ecdc;
+}
+.premium-probe-forward-stats .stat.is-n {
+  --edge: #4a4636;
+}
+
+/* 卡片外壳 */
+.premium-probe-forward-card {
+  background: var(--pp-panel);
+  border: 1px solid var(--pp-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.premium-probe-forward-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--pp-border);
+  flex-wrap: wrap;
+}
+.premium-probe-forward-card > header h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.premium-probe-forward-card > header h3 svg {
+  width: 16px;
+  height: 16px;
+  color: var(--pp-gold);
+}
+.premium-probe-forward-card > header > span {
+  font-size: 11.5px;
+  color: #776e60;
+}
+.premium-probe-forward-card > .body {
+  padding: 18px;
+}
+
+/* ① 流向条 */
+.premium-probe-forward .ribbon {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+.premium-probe-forward .rnode {
+  flex: 1 0 150px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--pp-border);
+  border-radius: 11px;
+}
+.premium-probe-forward .rnode .role {
+  align-self: flex-start;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  border-radius: 5px;
+}
+.premium-probe-forward .rnode.is-entry .role {
+  color: #6bd39a;
+  background: rgba(107, 211, 154, 0.13);
+}
+.premium-probe-forward .rnode.is-mid .role {
+  color: #63bce8;
+  background: rgba(99, 188, 232, 0.13);
+}
+.premium-probe-forward .rnode.is-exit .role {
+  color: #e6a24a;
+  background: rgba(230, 162, 74, 0.14);
+}
+.premium-probe-forward .rnode .gname {
+  font-size: 14px;
+  font-weight: 700;
+}
+.premium-probe-forward .rnode .gmeta {
+  font-size: 11px;
+  color: #8f867a;
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward .rlink {
+  flex: 0 0 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+.premium-probe-forward .rlink .lat {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pp-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward .rlink .arw {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--pp-border), var(--pp-gold));
+}
+.premium-probe-forward .rlink .arw::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -3px;
+  border-left: 7px solid var(--pp-gold);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.premium-probe-forward .rlink .lbl {
+  font-size: 10px;
+  color: #776e60;
+}
+
+/* 趋势图 */
+.premium-probe-forward-trend {
+  width: 100%;
+  height: 130px;
+  display: block;
+}
+.premium-probe-forward-trend-empty {
+  padding: 30px;
+  text-align: center;
+  font-size: 12px;
+  color: #776e60;
+}
+
+/* ② 拓扑 */
+.premium-probe-forward .topo {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.premium-probe-forward .grp {
+  flex: 0 0 240px;
+  min-width: 240px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--pp-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.premium-probe-forward .grp-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--pp-border);
+}
+.premium-probe-forward .grp-h .nm {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.premium-probe-forward .grp-h .rl,
+.premium-probe-forward-heatmap .rl {
+  padding: 2px 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 5px;
+}
+.premium-probe-forward .rl.is-entry,
+.premium-probe-forward-heatmap .rl.is-entry {
+  color: #6bd39a;
+  background: rgba(107, 211, 154, 0.13);
+}
+.premium-probe-forward .rl.is-mid,
+.premium-probe-forward-heatmap .rl.is-mid {
+  color: #63bce8;
+  background: rgba(99, 188, 232, 0.13);
+}
+.premium-probe-forward .rl.is-exit,
+.premium-probe-forward-heatmap .rl.is-exit {
+  color: #e6a24a;
+  background: rgba(230, 162, 74, 0.14);
+}
+.premium-probe-forward .grp-agg {
+  padding: 8px 14px;
+  font-size: 11.5px;
+  color: #9a917d;
+  background: rgba(216, 180, 106, 0.05);
+  border-bottom: 1px solid var(--pp-border);
+}
+.premium-probe-forward .grp-agg b {
+  color: var(--pp-gold-bright);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.premium-probe-forward .srv {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pp-border);
+}
+.premium-probe-forward .srv:last-child {
+  border-bottom: 0;
+}
+.premium-probe-forward .srv .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.premium-probe-forward .srv .dot.is-up {
+  background: #6bd39a;
+}
+.premium-probe-forward .srv .dot.is-down {
+  background: #e2606a;
+}
+.premium-probe-forward .srv .sn {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.premium-probe-forward .srv .slat {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward .slat.is-good {
+  color: #6bd39a;
+}
+.premium-probe-forward .slat.is-ok {
+  color: var(--pp-gold-bright);
+}
+.premium-probe-forward .slat.is-hi {
+  color: #e6884a;
+}
+.premium-probe-forward .slat.is-idle {
+  color: #776e60;
+}
+.premium-probe-forward .tconn {
+  flex: 0 0 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 2px;
+}
+.premium-probe-forward .tconn .cl {
+  font-size: 9.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #776e60;
+}
+.premium-probe-forward .tconn .cv {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pp-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward .tconn .cline {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--pp-border) 0 6px,
+    transparent 6px 11px
+  );
+}
+.premium-probe-forward .tconn .cline::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -3px;
+  border-left: 7px solid var(--pp-gold);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+/* ③ 流量热力表 */
+.premium-probe-forward-heatmap-wrap {
+  overflow-x: auto;
+}
+.premium-probe-forward-heatmap {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 680px;
+  font-variant-numeric: tabular-nums;
+}
+.premium-probe-forward-heatmap th {
+  padding: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9a917d;
+}
+.premium-probe-forward-heatmap th.srv {
+  text-align: left;
+  padding-left: 6px;
+  min-width: 160px;
+}
+.premium-probe-forward-heatmap th.tot {
+  text-align: right;
+  padding-right: 8px;
+  color: var(--pp-gold-bright);
+}
+.premium-probe-forward-heatmap tr.grp td {
+  padding: 13px 6px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9a917d;
+  text-align: left;
+}
+.premium-probe-forward-heatmap td.srv {
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 12.5px;
+}
+.premium-probe-forward-heatmap td.cell {
+  padding: 3px;
+}
+.premium-probe-forward-heatmap td.cell .box {
+  height: 32px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+.premium-probe-forward-heatmap td.tot {
+  text-align: right;
+  padding-right: 8px;
+  font-weight: 600;
+  color: var(--pp-gold-bright);
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .premium-probe-forward-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==== 转发链视图:布局稳定 + light 主题修正 ==== */
+/* 切换「按服务器/转发链」时竖向滚动条出现/消失会导致整页宽度抖动 → 固定滚动条槽 */
+:root.theme-premium {
+  scrollbar-gutter: stable;
+}
+/* 卡内浅色底块随主题自适应(dark 微亮 / light 微暗),替代写死的 rgba(255,255,255,.02) */
+.premium-probe-forward .rnode,
+.premium-probe-forward .grp {
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+/* ==================== 白金模式:转发链文字在奶白底上统一下压 ==================== */
+/* (上游用 :root.light,本地白金体系为 :root.theme-premium.platinum,规则不生效,按本地惯例重写) */
+/* muted/浅灰字 → 深灰棕 #5f5244 级别;数值亮金 → 深金 #8a6210 级别;近白 → 深棕 #241e14 */
+:root.theme-premium.platinum .premium-probe-forward-chaintabs button,
+:root.theme-premium.platinum .premium-probe-forward-chainbar .k,
+:root.theme-premium.platinum .premium-probe-forward-stats .stat .k,
+:root.theme-premium.platinum .premium-probe-forward-stats .stat .foot,
+:root.theme-premium.platinum .premium-probe-forward-stats .stat .v .u,
+:root.theme-premium.platinum .premium-probe-forward-card > header > span,
+:root.theme-premium.platinum .premium-probe-forward .rnode .gmeta,
+:root.theme-premium.platinum .premium-probe-forward .rlink .lbl,
+:root.theme-premium.platinum .premium-probe-forward .grp-agg,
+:root.theme-premium.platinum .premium-probe-forward .tconn .cl,
+:root.theme-premium.platinum .premium-probe-forward-heatmap th,
+:root.theme-premium.platinum .premium-probe-forward-heatmap tr.grp td,
+:root.theme-premium.platinum .premium-probe-forward-grouptabs button,
+:root.theme-premium.platinum .premium-probe-forward-chart-head,
+:root.theme-premium.platinum .premium-probe-forward-chart-xaxis span,
+:root.theme-premium.platinum .premium-probe-forward-empty,
+:root.theme-premium.platinum .premium-probe-forward-trend-empty {
+  color: #5f5244;
+}
+/* 白金:空闲/无数据浅灰 + 链路角色标签色在奶白底上压深 */
+:root.theme-premium.platinum .premium-probe-forward .slat.is-idle {
+  color: #5f5244;
+}
+:root.theme-premium.platinum .premium-probe-forward .slat.is-good,
+:root.theme-premium.platinum .premium-probe-forward .rnode.is-entry .role,
+:root.theme-premium.platinum .premium-probe-forward .rl.is-entry {
+  color: #4e7c5a;
+}
+:root.theme-premium.platinum .premium-probe-forward .rnode.is-mid .role,
+:root.theme-premium.platinum .premium-probe-forward .rl.is-mid {
+  color: #3e7ea8;
+}
+:root.theme-premium.platinum .premium-probe-forward .rnode.is-exit .role,
+:root.theme-premium.platinum .premium-probe-forward .rl.is-exit {
+  color: #a8722a;
+}
+/* 白金:数值亮金转深金(muted 数值单位仍用 #8a7f64 保持层级) */
+:root.theme-premium.platinum .premium-probe-forward-stats .stat .v .u {
+  color: #8a7f64;
+}
+:root.theme-premium.platinum .premium-probe-forward-stats .stat.is-ok .v {
+  color: #4e7c5a;
+}
+/* 白金:数值亮金(--pp-gold-bright 白金下为 #c9962b)在米白底上仍偏艳 → 深金 */
+:root.theme-premium.platinum .premium-probe-forward-stats .stat.is-gold .v,
+:root.theme-premium.platinum .premium-probe-forward-heatmap th.tot,
+:root.theme-premium.platinum .premium-probe-forward-heatmap td.tot,
+:root.theme-premium.platinum .premium-probe-forward .rlink .lat,
+:root.theme-premium.platinum .premium-probe-forward .tconn .cv,
+:root.theme-premium.platinum .premium-probe-forward .grp-agg b {
+  color: #8a6210;
+}
+/* 白金:近白值色(链路结构)在奶白底上不可见 → 主题深色文字 */
+:root.theme-premium.platinum .premium-probe-forward-stats .stat.is-n .v {
+  color: #241e14;
+}
+/* 白金:选中组标签 / 悬停日期在奶白底上要压深 */
+:root.theme-premium.platinum .premium-probe-forward-grouptabs button.is-active {
+  color: #3a2e0e;
+}
+:root.theme-premium.platinum .premium-probe-forward-chart-head .d {
+  color: #241e14;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   CalendarClock,
@@ -22,6 +22,10 @@ import {
   XCircle,
 } from 'lucide-react'
 import type {
+  ForwardChainData,
+  ForwardChainTraffic,
+  ForwardTrafficServer,
+  ForwardChainBucket,
   ProbePingSeries,
   ProbeServer,
   ProbePayload,
@@ -1463,7 +1467,500 @@ function MultiTargetLatencyChart({
   )
 }
 
-function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
+
+// 转发链数据类型定义在 ./types(随 ProbePayload.forward 走 WS 下发)。
+
+type ForwardPayload = {
+  enabled: boolean;
+  chains: ForwardChainData[];
+  generated_at: number;
+};
+
+const forwardRoleLabel: Record<string, string> = {
+  entry: "入口",
+  mid: "中转",
+  exit: "出口",
+};
+
+function forwardLatencyClass(ms: number): string {
+  if (ms <= 0) return "is-idle";
+  if (ms < 80) return "is-good";
+  if (ms < 160) return "is-ok";
+  return "is-hi";
+}
+
+function ForwardModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: "server" | "forward";
+  onChange: (next: "server" | "forward") => void;
+}) {
+  return (
+    <div className="premium-probe-view-toggle">
+      <button
+        type="button"
+        className={mode === "server" ? "is-active" : undefined}
+        onClick={() => onChange("server")}
+      >
+        <Server />
+        按服务器
+      </button>
+      <button
+        type="button"
+        className={mode === "forward" ? "is-active" : undefined}
+        onClick={() => onChange("forward")}
+      >
+        <Radio />
+        转发链
+      </button>
+    </div>
+  );
+}
+
+function ForwardTrendChart({ trend }: { trend: ForwardChainBucket[] }) {
+  if (trend.length < 2) {
+    return (
+      <div className="premium-probe-forward-trend-empty">暂无趋势数据</div>
+    );
+  }
+  const W = 900;
+  const H = 130;
+  const padT = 10;
+  const padB = 14;
+  const values = trend.map((point) => point.e2e_ms);
+  const max = Math.max(...values) * 1.12 || 1;
+  const xScale = (index: number) => (W * index) / Math.max(1, trend.length - 1);
+  const yScale = (value: number) =>
+    padT + (H - padT - padB) * (1 - value / max);
+  const line = trend
+    .map(
+      (point, index) =>
+        `${index ? "L" : "M"}${xScale(index).toFixed(1)} ${yScale(point.e2e_ms).toFixed(1)}`,
+    )
+    .join(" ");
+  const area = `${line} L${xScale(trend.length - 1).toFixed(1)} ${H - padB} L0 ${H - padB} Z`;
+  return (
+    <svg
+      className="premium-probe-forward-trend"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="fwdTrendFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="var(--pp-gold)" stopOpacity="0.22" />
+          <stop offset="1" stopColor="var(--pp-gold)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#fwdTrendFill)" />
+      <path d={line} fill="none" stroke="var(--pp-gold)" strokeWidth="2.4" />
+      <circle
+        cx={xScale(trend.length - 1)}
+        cy={yScale(values[values.length - 1])}
+        r="3.5"
+        fill="var(--pp-gold)"
+      />
+    </svg>
+  );
+}
+
+const forwardTrafficFmt = (gb: number) =>
+  gb >= 1024
+    ? `${(gb / 1024).toFixed(2)} TB`
+    : gb >= 10
+      ? `${Math.round(gb)} GB`
+      : gb > 0
+        ? `${gb.toFixed(1)} GB`
+        : "0 GB";
+
+// 转发组流量:堆叠柱状图。周期常为 1 个月,横向表格放不下,改为按转发组切换的堆叠柱状图
+// (每天一根柱,组内多台服务器堆叠),并显示所选组的周期总流量。
+function ForwardTrafficChart({ traffic }: { traffic: ForwardChainTraffic }) {
+  const groups = useMemo(() => {
+    const list: {
+      group: string;
+      role: string;
+      servers: ForwardTrafficServer[];
+      total: number;
+    }[] = [];
+    for (const srv of traffic.servers) {
+      let bucket = list.find((entry) => entry.group === srv.group);
+      if (!bucket) {
+        bucket = { group: srv.group, role: srv.role, servers: [], total: 0 };
+        list.push(bucket);
+      }
+      bucket.servers.push(srv);
+      bucket.total += srv.total_gb;
+    }
+    return list;
+  }, [traffic]);
+
+  const [tab, setTab] = useState(0);
+  const [hover, setHover] = useState<number | null>(null);
+  const activeIdx = Math.min(tab, Math.max(0, groups.length - 1));
+  const active = groups[activeIdx];
+  const days = traffic.days;
+
+  const palette = [
+    "var(--pp-gold)",
+    "#d8a84a",
+    "#b9822a",
+    "#e7c67e",
+    "#9c6f22",
+    "#f0d79a",
+  ];
+  const dayTotal = useMemo(
+    () =>
+      days.map((_, i) =>
+        (active?.servers || []).reduce(
+          (s, srv) => s + (srv.daily_gb[i] || 0),
+          0,
+        ),
+      ),
+    [days, active],
+  );
+  const max = Math.max(1e-9, ...dayTotal);
+
+  if (!active) return null;
+
+  const W = 900;
+  const H = 200;
+  const padT = 8;
+  const padB = 6;
+  const n = days.length;
+  const slot = W / Math.max(1, n);
+  const barW = Math.min(30, slot * 0.6);
+  const plotH = H - padT - padB;
+  const labelStep = n <= 12 ? 1 : Math.ceil(n / 8);
+
+  return (
+    <div className="premium-probe-forward-chart-wrap">
+      <div className="premium-probe-forward-grouptabs">
+        {groups.map((g, i) => (
+          <button
+            key={g.group}
+            type="button"
+            className={i === activeIdx ? "is-active" : undefined}
+            onClick={() => setTab(i)}
+          >
+            <span className="g">{g.group}</span>
+            <span className={`rl is-${g.role}`}>
+              {forwardRoleLabel[g.role] || g.role}
+            </span>
+            <span className="t">{forwardTrafficFmt(g.total)}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="premium-probe-forward-chart-head">
+        {hover != null && days[hover] ? (
+          <>
+            <span className="d">{days[hover].slice(5)}</span>
+            {active.servers.map((srv, si) => (
+              <span className="s" key={srv.name}>
+                <i style={{ background: palette[si % palette.length] }} />
+                <Twemoji>{srv.name}</Twemoji>
+                <b>{forwardTrafficFmt(srv.daily_gb[hover] || 0)}</b>
+              </span>
+            ))}
+            <span className="sum">合计 {forwardTrafficFmt(dayTotal[hover])}</span>
+          </>
+        ) : (
+          <span className="total">
+            {active.group} · 周期总流量 <b>{forwardTrafficFmt(active.total)}</b>
+          </span>
+        )}
+      </div>
+
+      <div className="premium-probe-forward-chart">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          {days.map((day, i) => {
+            let acc = 0;
+            return (
+              <g
+                key={day}
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}
+              >
+                <rect
+                  x={slot * i}
+                  y={0}
+                  width={slot}
+                  height={H}
+                  fill="transparent"
+                />
+                {active.servers.map((srv, si) => {
+                  const v = srv.daily_gb[i] || 0;
+                  if (v <= 0) return null;
+                  const h = plotH * (v / max);
+                  const y = padT + plotH * (1 - (acc + v) / max);
+                  acc += v;
+                  return (
+                    <rect
+                      key={srv.name}
+                      x={slot * i + (slot - barW) / 2}
+                      y={y}
+                      width={barW}
+                      height={Math.max(0.6, h)}
+                      rx={1.5}
+                      fill={palette[si % palette.length]}
+                      opacity={hover == null || hover === i ? 1 : 0.32}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+          <line
+            x1="0"
+            y1={H - padB}
+            x2={W}
+            y2={H - padB}
+            stroke="var(--pp-border)"
+            strokeWidth="1"
+          />
+        </svg>
+        <div className="premium-probe-forward-chart-xaxis">
+          {days.map((day, i) => (
+            <span key={day}>{i % labelStep === 0 ? day.slice(5) : ""}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ForwardChainView({ wsChains }: { wsChains?: ForwardChainData[] }) {
+  // 优先用 WS payload 下发的转发链数据(实时);未走 WS 才拉 /api/forward 兜底。
+  const hasWS = wsChains !== undefined;
+  const [data, setData] = useState<ForwardPayload | undefined>();
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [chainIdx, setChainIdx] = useState(0);
+  useEffect(() => {
+    if (hasWS) return; // WS 有数据就不走 HTTP 轮询
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const response = await fetch("/api/forward", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        setData(await response.json());
+        setStatus("ok");
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setStatus("error");
+        }
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 15_000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [hasWS]);
+
+  const chains = hasWS ? wsChains : data?.chains || [];
+  const activeIdx = Math.min(chainIdx, Math.max(0, chains.length - 1));
+  const chain = chains[activeIdx];
+
+  if (!hasWS && status === "loading" && !data) {
+    return <div className="premium-probe-forward-empty">加载转发链数据…</div>;
+  }
+  if (!chain) {
+    return (
+      <div className="premium-probe-forward-empty">
+        暂无转发链数据（需已配置转发链并运行探测采集）
+      </div>
+    );
+  }
+
+  const nodeCount = chain.groups.reduce((n, g) => n + g.servers.length, 0);
+  const roleTally = chain.groups.reduce(
+    (acc, g) => {
+      acc[g.role] = (acc[g.role] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+  const totalGB = chain.traffic?.total_gb || 0;
+  const trafficStat =
+    totalGB >= 1024
+      ? { value: (totalGB / 1024).toFixed(1), unit: "TB" }
+      : { value: Math.round(totalGB).toString(), unit: "GB" };
+
+  return (
+    <div className="premium-probe-forward">
+      {chains.length > 1 && (
+        <div className="premium-probe-forward-chainbar">
+          <Radio />
+          <span className="k">转发链</span>
+          <div className="premium-probe-forward-chaintabs">
+            {chains.map((item, index) => (
+              <button
+                key={item.name}
+                type="button"
+                className={index === activeIdx ? "is-active" : undefined}
+                onClick={() => setChainIdx(index)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="premium-probe-forward-stats">
+        <div className="stat is-gold">
+          <div className="k">端到端延迟</div>
+          <div className="v">
+            {chain.end_to_end_ms}
+            <span className="u">ms</span>
+          </div>
+          <div className="foot">入口 → 出口 · 各组均值之和</div>
+        </div>
+        <div className="stat is-ok">
+          <div className="k">平均丢包</div>
+          <div className="v">
+            {chain.loss_pct.toFixed(1)}
+            <span className="u">%</span>
+          </div>
+          <div className="foot">全链探测点均值</div>
+        </div>
+        <div className="stat is-n">
+          <div className="k">链路结构</div>
+          <div className="v">
+            {chain.groups.length}
+            <span className="u">组</span> · {nodeCount}
+            <span className="u">节点</span>
+          </div>
+          <div className="foot">
+            入口 {roleTally.entry || 0} · 中转 {roleTally.mid || 0} · 出口{" "}
+            {roleTally.exit || 0}
+          </div>
+        </div>
+        <div className="stat is-gold">
+          <div className="k">周期总流量</div>
+          <div className="v">
+            {trafficStat.value}
+            <span className="u">{trafficStat.unit}</span>
+          </div>
+          <div className="foot">近 7 天全链累计</div>
+        </div>
+      </div>
+
+      <section className="premium-probe-forward-card">
+        <header>
+          <h3>
+            <Activity />
+            转发链探测详情
+          </h3>
+          <span>入口 → 出口 端到端延迟检测 · 5 分钟一个数据桶</span>
+        </header>
+        <div className="body">
+          <div className="ribbon">
+            {chain.groups.map((group, index) => (
+              <Fragment key={group.name}>
+                <div className={`rnode is-${group.role}`}>
+                  <span className="role">{forwardRoleLabel[group.role]}组</span>
+                  <span className="gname">{group.name}</span>
+                  <span className="gmeta">{group.servers.length} 节点</span>
+                </div>
+                {index < chain.groups.length - 1 && (
+                  <div className="rlink">
+                    <span className="lat">{group.to_next_ms} ms</span>
+                    <span className="arw" />
+                    <span className="lbl">→ 下一组</span>
+                  </div>
+                )}
+              </Fragment>
+            ))}
+          </div>
+          <ForwardTrendChart trend={chain.trend} />
+        </div>
+      </section>
+
+      <section className="premium-probe-forward-card">
+        <header>
+          <h3>
+            <Target />
+            转发组延迟详情
+          </h3>
+          <span>组间延迟 · 组内每台服务器到下一组的延迟</span>
+        </header>
+        <div className="body">
+          <div className="topo">
+            {chain.groups.map((group, index) => (
+              <Fragment key={group.name}>
+                <div className="grp">
+                  <div className="grp-h">
+                    <span className="nm">{group.name}</span>
+                    <span className={`rl is-${group.role}`}>
+                      {forwardRoleLabel[group.role]}
+                    </span>
+                  </div>
+                  <div className="grp-agg">
+                    本组 → {group.role === "exit" ? "落地目标" : "下一组"}&nbsp;
+                    <b>{group.to_next_ms} ms</b>
+                  </div>
+                  {group.servers.map((srv) => (
+                    <div className="srv" key={srv.name}>
+                      <span
+                        className={`dot ${srv.healthy ? "is-up" : "is-down"}`}
+                      />
+                      <span className="sn">
+                        <Twemoji>{srv.name}</Twemoji>
+                      </span>
+                      <span
+                        className={`slat ${forwardLatencyClass(srv.to_next_ms)}`}
+                      >
+                        {srv.to_next_ms > 0 ? `${srv.to_next_ms} ms` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {index < chain.groups.length - 1 && (
+                  <div className="tconn">
+                    <span className="cl">组间</span>
+                    <span className="cv">{group.to_next_ms} ms</span>
+                    <span className="cline" />
+                  </div>
+                )}
+              </Fragment>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {chain.traffic && chain.traffic.servers.length > 0 && (
+        <section className="premium-probe-forward-card">
+          <header>
+            <h3>
+              <Gauge />
+              转发组流量详情
+            </h3>
+            <span>周期内每日 · 按转发组切换 · 组内每台服务器堆叠</span>
+          </header>
+          <div className="body">
+            <ForwardTrafficChart traffic={chain.traffic} />
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+
+function PremiumNetworkView({
+  servers,
+  forwardChains,
+}: {
+  servers: ProbeServer[]
+  forwardChains?: ForwardChainData[]
+}) {
+  const [netMode, setNetMode] = useState<'server' | 'forward'>('server')
   const [serverIndex, setServerIndex] = useState(0)
   const [target, setTarget] = useState('__all__')
   const [visibleTargets, setVisibleTargets] = useState<string[]>([])
@@ -1603,6 +2100,23 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
       })
     : []
 
+  if (netMode === 'forward') {
+    return (
+      <section className='premium-probe-network-view'>
+        <div className='premium-probe-network-view-heading'>
+          <div>
+            <h2>
+              <Activity /> 网络状况
+            </h2>
+            <span>按转发链查看入口到出口的端到端探测、逐组延迟与流量</span>
+          </div>
+          <ForwardModeToggle mode={netMode} onChange={setNetMode} />
+        </div>
+        <ForwardChainView wsChains={forwardChains} />
+      </section>
+    )
+  }
+
   return (
     <section className='premium-probe-network-view'>
       <div className='premium-probe-network-view-heading'>
@@ -1659,6 +2173,7 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
               ))}
             </select>
           </label>
+          <ForwardModeToggle mode={netMode} onChange={setNetMode} />
         </div>
       </div>
 
@@ -2661,7 +3176,7 @@ export function PremiumProbePage({
 
       <main>
         {view === 'network' ? (
-          <PremiumNetworkView servers={servers} />
+          <PremiumNetworkView servers={servers} forwardChains={data?.forward} />
         ) : view === 'resource' ? (
           <PremiumResourceOverview
             servers={servers}
