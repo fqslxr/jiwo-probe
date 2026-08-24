@@ -6,7 +6,7 @@ import { ThemePicker } from '@/components/atoms/ThemePicker'
 import { GlobalThemeSwitch } from '@/components/atoms/GlobalThemeSwitch'
 import { ViewVersionSwitcher } from '@/components/atoms/ViewVersionSwitcher'
 import { Icon } from '@/components/atoms/icons'
-import { useIsMobile, useIsNarrow } from '@/hooks/useMediaQuery'
+import { useIsMobile, useIsNarrow, useIsTablet } from '@/hooks/useMediaQuery'
 import { useSearchQuery, nodeMatchesQuery } from '@/hooks/useSearchQuery'
 import { contentFs } from '@/utils/fontScale'
 import type { KomariNode, KomariRecord } from '@/types/komari'
@@ -82,6 +82,7 @@ export function Topbar({
 }: Props) {
   const isMobile = useIsMobile()
   const isNarrow = useIsNarrow()
+  const useCompactControls = useIsTablet()
   const connStatus =
     conn === 'open' ? 'good' : conn === 'connecting' ? 'info' : conn === 'error' ? 'bad' : 'idle'
   const connLabel =
@@ -131,7 +132,7 @@ export function Topbar({
   }, [query])
 
   function focusSearch() {
-    if (isMobile) {
+    if (useCompactControls) {
       setMobileSearchOpen(true)
       // Defer so the panel is in the DOM before we focus.
       requestAnimationFrame(() => mobileInputRef.current?.focus())
@@ -163,7 +164,7 @@ export function Topbar({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchEnabled, isMobile])
+  }, [searchEnabled, useCompactControls])
 
   function jumpToNode(uuid: string) {
     // Use the same hash convention as the rest of the app: /nodes/:uuid
@@ -288,13 +289,13 @@ export function Topbar({
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: useCompactControls ? 6 : 12, flexShrink: 0 }}>
         {/* Search — full pill on desktop, icon-only on mobile.
             When searchEnabled is false (pages without node lists), the
             search affordance is hidden entirely so we don't show a control
             that doesn't do anything on this page. */}
         {searchEnabled && (
-          isMobile ? (
+          useCompactControls ? (
             <button
               onClick={() => {
                 setMobileSearchOpen((v) => {
@@ -452,7 +453,7 @@ export function Topbar({
       </div>
 
       {/* Mobile search panel — full-width drop-down below the header. */}
-      {searchEnabled && isMobile && mobileSearchOpen && (
+      {searchEnabled && useCompactControls && mobileSearchOpen && (
         <div
           style={{
             position: 'absolute',

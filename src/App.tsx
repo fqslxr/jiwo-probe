@@ -23,6 +23,7 @@ const colors = ['#8b5cf6', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'
 const RegionGlobe = lazy(() => import('./RegionGlobe').then((module) => ({ default: module.RegionGlobe })))
 const PremiumProbePage = lazy(() => import('./PremiumProbePage').then((module) => ({ default: module.PremiumProbePage })))
 const GmApp = lazy(() => import('./glassmorphism/GmApp').then((module) => ({ default: module.default })))
+const EmeraldApp = lazy(() => import('./emerald/EmeraldApp').then((module) => ({ default: module.default })))
 const ranges = [
   {
     key: '1h',
@@ -257,6 +258,7 @@ const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
   { value: 'premium', label: 'Premium' },
   { value: 'ran', label: '岚 · Ran' },
   { value: 'glassmorphism', label: 'Glassmorphism' },
+  { value: 'emerald', label: 'Emerald' },
 ]
 
 function ThemeSelect({ value, onChange }: { value: ThemeName | null; onChange: (name: ThemeName | null) => void }) {
@@ -1029,6 +1031,9 @@ export function TrendDialog({ serverIndex, initial, targetKey, title, mode, clos
           })
         }
       })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) console.error(error)
+      })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
@@ -1416,7 +1421,7 @@ function ReturnRouteIcon({ premium }: { premium: boolean }) {
   return <Lottie animationData={premium ? premiumRouteAnimation : commonRouteAnimation} aria-hidden="true" className="route-badge-icon" loop />
 }
 
-export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean; variant?: 'lumina' | 'anime' | 'glass' }) {
+export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean; variant?: 'lumina' | 'anime' | 'glass' | 'emerald' }) {
   const byCarrier = new Map(routes.map((route) => [route.carrier, route]))
   const items = (['telecom', 'unicom', 'mobile'] as const).map((carrier) => {
     const route = byCarrier.get(carrier)
@@ -1424,9 +1429,9 @@ export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes
     const routeType = carrier === 'telecom' && telecomPaidPeer && detectedRouteType === '163' ? '163 PP' : detectedRouteType
     return { carrier, route, routeType, premium: goldRoutes.has(routeType.toUpperCase().replace(/[^A-Z0-9]/g, '')) }
   })
-  if (variant === 'lumina' || variant === 'anime' || variant === 'glass') {
-    // 扁平版勋章：无 Lottie 动画、无渐变、无阴影。lumina=细边框低饱和 chip；anime=直角+紫色调 chip；glass=半透明玻璃面+镜面高光 chip（样式见 gm.css）
-    const flat = variant === 'lumina' ? 'lumina-route' : variant === 'anime' ? 'anime-route' : 'glass-route'
+  if (variant === 'lumina' || variant === 'anime' || variant === 'glass' || variant === 'emerald') {
+    // 主题化勋章：用主题原生 chip 代替通用 Lottie 动画，避免详情页与卡片视觉割裂。
+    const flat = variant === 'lumina' ? 'lumina-route' : variant === 'anime' ? 'anime-route' : variant === 'glass' ? 'glass-route' : 'emerald-detail-route'
     return (
       <div className={`${flat}-badges`}>
         {items.map(({ carrier, route, routeType, premium }) => (
@@ -2651,6 +2656,14 @@ export function App() {
     return (
       <Suspense fallback={<main className="center">正在加载 Glassmorphism 主题…</main>}>
         <GmApp data={data} onThemeChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
+      </Suspense>
+    )
+  }
+  // emerald 主题: Komari Emerald 设计语言 + StatusShow 动效增强。
+  if (activeTheme === 'emerald') {
+    return (
+      <Suspense fallback={<main className="center">正在加载 Emerald 主题…</main>}>
+        <EmeraldApp data={data} onThemeChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
       </Suspense>
     )
   }

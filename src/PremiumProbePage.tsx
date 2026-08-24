@@ -191,13 +191,13 @@ type PremiumProbePageProps = {
   isLoading: boolean
   isError: boolean
   // 主题切换回调（经典界面 ThemeSelect 同款语义: name=null 表示跟随主控）
-  onThemeChange?: (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | null) => void
+  onThemeChange?: (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald' | null) => void
 }
 
 type StatusFilter = 'all' | 'online' | 'offline'
 type PremiumProbeView = 'card' | 'network' | 'resource'
 
-const PREMIUM_THEME_OPTIONS: { value: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism'; label: string }[] = [
+const PREMIUM_THEME_OPTIONS: { value: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald'; label: string }[] = [
   { value: 'pixel', label: '像素' },
   { value: 'flat', label: '扁平' },
   { value: 'anime', label: '动漫' },
@@ -206,6 +206,7 @@ const PREMIUM_THEME_OPTIONS: { value: 'pixel' | 'flat' | 'anime' | 'glass' | 'lu
   { value: 'premium', label: 'Premium' },
   { value: 'ran', label: '岚 · Ran' },
   { value: 'glassmorphism', label: 'Glassmorphism' },
+  { value: 'emerald', label: 'Emerald' },
 ]
 
 // 主题切换下拉（黑金风）。当前必然是 premium（本页就是），选择其他主题或"跟随主控"时回调上层切换。
@@ -225,7 +226,7 @@ function PremiumThemeSelect({ onThemeChange }: { onThemeChange?: PremiumProbePag
     return () => document.removeEventListener('mousedown', handle)
   }, [open])
 
-  const pick = (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | null) => {
+  const pick = (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald' | null) => {
     setOpen(false)
     if (name === 'premium') return // 已在 Premium，无需切换
     onThemeChange?.(name)
@@ -1497,22 +1498,28 @@ function ForwardModeToggle({
   onChange: (next: "server" | "forward") => void;
 }) {
   return (
-    <div className="premium-probe-view-toggle">
+    <div
+      className="premium-probe-view-toggle premium-probe-network-mode-toggle"
+      role="group"
+      aria-label="网络状况视图"
+    >
       <button
         type="button"
         className={mode === "server" ? "is-active" : undefined}
+        aria-pressed={mode === "server"}
         onClick={() => onChange("server")}
       >
         <Server />
-        按服务器
+        <span>按服务器</span>
       </button>
       <button
         type="button"
         className={mode === "forward" ? "is-active" : undefined}
+        aria-pressed={mode === "forward"}
         onClick={() => onChange("forward")}
       >
         <Radio />
-        转发链
+        <span>转发链</span>
       </button>
     </div>
   );
@@ -3117,6 +3124,9 @@ export function PremiumProbePage({
             <button
               type='button'
               className={view === 'card' ? 'is-active' : undefined}
+              aria-label='地图视图'
+              aria-pressed={view === 'card'}
+              title='地图视图'
               onClick={() => changeView('card')}
             >
               <Globe2 /> 地图视图
@@ -3124,6 +3134,9 @@ export function PremiumProbePage({
             <button
               type='button'
               className={view === 'network' ? 'is-active' : undefined}
+              aria-label='网络状况'
+              aria-pressed={view === 'network'}
+              title='网络状况'
               onClick={() => changeView('network')}
             >
               <Activity /> 网络状况
@@ -3131,6 +3144,9 @@ export function PremiumProbePage({
             <button
               type='button'
               className={view === 'resource' ? 'is-active' : undefined}
+              aria-label='资源概况'
+              aria-pressed={view === 'resource'}
+              title='资源概况'
               onClick={() => changeView('resource')}
             >
               <Gauge /> 资源概况

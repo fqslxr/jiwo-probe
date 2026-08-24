@@ -58,6 +58,7 @@ const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
   { value: 'premium', label: 'Premium' },
   { value: 'ran', label: '岚 · Ran' },
   { value: 'glassmorphism', label: 'Glassmorphism' },
+  { value: 'emerald', label: 'Emerald' },
 ]
 
 function formatUptimeDays(seconds: number): string {
@@ -418,6 +419,7 @@ interface GmGeneralCard {
 }
 
 function GmGeneralCards({ servers }: { servers: ProbeServer[] }) {
+  const [earthCollapsed, setEarthCollapsed] = useState(true)
   const cards = useMemo<GmGeneralCard[]>(() => {
     const memUsed = servers.reduce((acc, s) => acc + (s.mem_used || 0), 0)
     const memTotal = servers.reduce((acc, s) => acc + (s.mem_total || 0), 0)
@@ -495,7 +497,7 @@ function GmGeneralCards({ servers }: { servers: ProbeServer[] }) {
   const regions = useMemo(() => buildRegions(servers), [servers])
 
   return (
-    <section className="gm-general">
+    <section className={`gm-general${earthCollapsed ? ' is-earth-collapsed' : ''}`}>
       <div className="gm-general-cards">
         {cards.map((card) => (
           <article className="gm-general-card" key={card.key} title={card.tooltip}>
@@ -510,9 +512,20 @@ function GmGeneralCards({ servers }: { servers: ProbeServer[] }) {
           </article>
         ))}
       </div>
-      <div className="gm-earth-wrap">
+      <div className="gm-earth-wrap" id="gm-mobile-earth">
         <GmEarth regions={regions} />
       </div>
+      <button
+        type="button"
+        className="gm-earth-toggle"
+        aria-expanded={!earthCollapsed}
+        aria-controls="gm-mobile-earth"
+        onClick={() => setEarthCollapsed((value) => !value)}
+      >
+        <Globe2 size={14} />
+        <span>{earthCollapsed ? '展开地球' : '收起地球'}</span>
+        <ChevronDown size={14} className={earthCollapsed ? '' : 'rotated'} />
+      </button>
     </section>
   )
 }
@@ -557,18 +570,26 @@ function GmThemeMenu({ current, onChange }: { current: ThemeName | null; onChang
   const label = current ? THEME_OPTIONS.find((opt) => opt.value === current)?.label || current : '跟随主控'
   return (
     <div className="gm-theme-menu">
-      <button type="button" className="gm-header-btn" title={`主题: ${label}`} onClick={() => setOpen((v) => !v)}>
+      <button
+        type="button"
+        className="gm-header-btn"
+        aria-label={`主题: ${label}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={`主题: ${label}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <Palette size={18} />
         <ChevronDown size={14} className={open ? 'rotated' : ''} />
       </button>
       {open && (
-        <div className="gm-theme-dropdown">
-          <button type="button" onClick={() => { onChange(null); setOpen(false) }}>
+        <div className="gm-theme-dropdown" role="listbox" aria-label="主题选择">
+          <button type="button" role="option" aria-selected={current === null} onClick={() => { onChange(null); setOpen(false) }}>
             <span>跟随主控</span>
             {current === null && <Check size={14} />}
           </button>
           {THEME_OPTIONS.map((opt) => (
-            <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false) }}>
+            <button key={opt.value} type="button" role="option" aria-selected={current === opt.value} onClick={() => { onChange(opt.value); setOpen(false) }}>
               <span>{opt.label}</span>
               {current === opt.value && <Check size={14} />}
             </button>

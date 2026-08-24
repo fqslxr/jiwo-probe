@@ -18,7 +18,7 @@ import type { AttentionItem } from '@/hooks/v2'
 import { Etch } from '@/components/atoms/Etch'
 import { SerialPlate } from '@/components/atoms/SerialPlate'
 import { contentFs } from '@/utils/fontScale'
-import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useIsTablet } from '@/hooks/useMediaQuery'
 import { PanelFooterLink } from './PanelFooterLink'
 
 interface Props {
@@ -80,7 +80,7 @@ export function AttentionNeededTable({
   onNodeClick,
   footerLink,
 }: Props) {
-  const isMobile = useIsMobile()
+  const isCompact = useIsTablet()
 
   return (
     <div
@@ -117,15 +117,17 @@ export function AttentionNeededTable({
           ✓ All nodes nominal — no attention required.
         </div>
       ) : (
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontFamily: 'var(--font-mono)',
-            fontVariantNumeric: 'tabular-nums',
-            fontSize: contentFs(11),
-          }}
-        >
+        <div className="ran-attention-table-scroll">
+          <table
+            style={{
+              width: '100%',
+              minWidth: isCompact ? 390 : 620,
+              borderCollapse: 'collapse',
+              fontFamily: 'var(--font-mono)',
+              fontVariantNumeric: 'tabular-nums',
+              fontSize: contentFs(11),
+            }}
+          >
           <thead>
             <tr>
               <th
@@ -142,7 +144,7 @@ export function AttentionNeededTable({
               >
                 NODE
               </th>
-              {!isMobile && (
+              {!isCompact && (
                 <th
                   style={{
                     textAlign: 'left',
@@ -185,7 +187,7 @@ export function AttentionNeededTable({
               >
                 IMPACT
               </th>
-              {!isMobile && (
+              {!isCompact && (
                 <th
                   style={{
                     textAlign: 'right',
@@ -250,7 +252,7 @@ export function AttentionNeededTable({
                       {it.node.name ?? it.node.uuid.slice(0, 8)}
                     </span>
                   </td>
-                  {!isMobile && (
+                  {!isCompact && (
                     <td
                       style={{
                         padding: '8px',
@@ -286,7 +288,7 @@ export function AttentionNeededTable({
                       </span>
                     </div>
                   </td>
-                  {!isMobile && (
+                  {!isCompact && (
                     <td
                       style={{
                         padding: '8px 0 8px 8px',
@@ -301,7 +303,8 @@ export function AttentionNeededTable({
               )
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
       )}
 
       {footerLink && (

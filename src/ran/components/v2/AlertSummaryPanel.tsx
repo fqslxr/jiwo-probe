@@ -14,7 +14,7 @@ import type { AlertSummary } from '@/hooks/v2'
 import { Etch } from '@/components/atoms/Etch'
 import { SerialPlate } from '@/components/atoms/SerialPlate'
 import { contentFs } from '@/utils/fontScale'
-import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useIsTablet } from '@/hooks/useMediaQuery'
 import { PanelFooterLink } from './PanelFooterLink'
 
 interface Props {
@@ -65,7 +65,7 @@ export function AlertSummaryPanel({
   onAlertClick,
   footerLink,
 }: Props) {
-  const isMobile = useIsMobile()
+  const isCompact = useIsTablet()
 
   return (
     <div
@@ -92,7 +92,7 @@ export function AlertSummaryPanel({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: 6,
           marginBottom: 12,
         }}
@@ -101,20 +101,21 @@ export function AlertSummaryPanel({
           <div
             key={lv}
             style={{
-              padding: isMobile ? '6px 8px' : '8px 10px',
+              padding: isCompact ? '6px' : '8px 10px',
               background: LEVEL_BG[lv],
               border: `1px solid ${LEVEL_BORDER[lv]}`,
               borderRadius: 3,
               display: 'flex',
-              alignItems: 'center',
-              gap: 9,
+              alignItems: isCompact ? 'flex-start' : 'center',
+              flexDirection: isCompact ? 'column' : 'row',
+              gap: isCompact ? 4 : 9,
             }}
           >
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontVariantNumeric: 'tabular-nums',
-                fontSize: contentFs(isMobile ? 16 : 20),
+                fontSize: contentFs(isCompact ? 16 : 20),
                 fontWeight: 500,
                 color: LEVEL_COLOR[lv],
                 lineHeight: 1,
@@ -174,6 +175,7 @@ export function AlertSummaryPanel({
                 fontSize: contentFs(11),
                 cursor: onAlertClick ? 'pointer' : 'default',
                 padding: '2px 0',
+                minWidth: 0,
               }}
               onMouseEnter={(e) => {
                 if (onAlertClick)
@@ -193,36 +195,61 @@ export function AlertSummaryPanel({
                   flexShrink: 0,
                 }}
               />
-              <span
+              <div
+                title={[a.name, a.title, a.detail].filter(Boolean).join(' · ')}
                 style={{
-                  color: 'var(--fg-0)',
-                  fontWeight: 500,
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: contentFs(12),
-                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
                 }}
               >
-                {a.name}
-              </span>
-              <span style={{ color: 'var(--fg-1)', whiteSpace: 'nowrap' }}>{a.title}</span>
-              {a.detail && (
                 <span
                   style={{
-                    color: 'var(--fg-3)',
-                    fontSize: contentFs(10),
+                    color: 'var(--fg-0)',
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: contentFs(12),
                     whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
-                  {a.detail}
+                  {a.name}
                 </span>
-              )}
-              <span style={{ flex: 1 }} />
+                <span
+                  style={{
+                    color: 'var(--fg-1)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {a.title}
+                </span>
+                {a.detail && (
+                  <span
+                    style={{
+                      color: 'var(--fg-3)',
+                      fontSize: contentFs(10),
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {a.detail}
+                  </span>
+                )}
+              </div>
               <span
                 style={{
                   color: 'var(--fg-3)',
                   fontSize: contentFs(10),
                   letterSpacing: '0.06em',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {fmtAgo(a.timestampISO)}

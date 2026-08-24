@@ -81,6 +81,8 @@
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
+.gm-header-btn svg { flex: 0 0 auto; }
+.gm-theme-menu > .gm-header-btn { width: 44px; }
 .gm-header-btn:hover {
   background: rgba(255, 255, 255, 0.09);
   color: #f8fafc;
@@ -235,6 +237,7 @@
   justify-content: center;
   z-index: 1;
 }
+.gm-earth-toggle { display: none; }
 @media (min-width: 768px) {
   .gm-earth-wrap {
     grid-column: 7 / 13;
@@ -245,7 +248,39 @@
   .gm-earth-wrap {
     grid-row: 2;
     margin-top: 4px;
+    max-height: 520px;
+    overflow: hidden;
+    opacity: 1;
+    visibility: visible;
+    transition: max-height 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease, margin 0.34s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.22s;
   }
+  .gm-general.is-earth-collapsed .gm-earth-wrap { max-height: 0; margin-top: 0; opacity: 0; visibility: hidden; pointer-events: none; }
+  .gm-earth-toggle {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: center;
+    min-height: 36px;
+    border: 1px solid rgba(47, 212, 161, 0.3);
+    border-radius: 999px;
+    padding: 6px 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #2fd4a1;
+    background: rgba(17, 24, 39, 0.58);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .gm-earth-toggle:hover,
+  .gm-earth-toggle:focus-visible { outline: 0; border-color: #2fd4a1; background: rgba(47, 212, 161, 0.1); }
+  .gm-earth-toggle svg:last-child { transition: transform 0.22s ease; }
+  .gm-general.is-earth-collapsed .gm-earth-toggle { grid-row: 2; }
 }
 
 /* ===== 地球（翡翠配色） ===== */
@@ -1223,6 +1258,9 @@ body.gm-body .modal header button:hover {
 .gm-app.gm-light [data-gm-country].is-active { fill: #0d946e; stroke: #10b981; }
 .gm-app.gm-light .gm-graticule { stroke: rgba(63, 74, 99, 0.15); }
 .gm-app.gm-light .gm-globe-outline { stroke: rgba(13, 148, 110, 0.4); }
+.gm-app.gm-light .gm-earth-toggle { color: #0d946e; border-color: rgba(13, 148, 110, 0.28); background: rgba(255, 255, 255, 0.68); box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+.gm-app.gm-light .gm-earth-toggle:hover,
+.gm-app.gm-light .gm-earth-toggle:focus-visible { border-color: #0d946e; background: rgba(13, 148, 110, 0.1); }
 .gm-app.gm-light .gm-orbit-labels rect { fill: rgba(250, 251, 253, 0.92); stroke: rgba(13, 148, 110, 0.35); }
 .gm-app.gm-light .gm-orbit-label-content { color: #3f4a63; }
 /* 控件 */

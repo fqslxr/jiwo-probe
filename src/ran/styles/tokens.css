@@ -457,6 +457,8 @@ body {
    Raised: lit from above, so the face carries a top-down gradient, the top
    edge takes a highlight and the bottom edge a shadow (see --shadow-card). */
 .precision-card {
+  min-width: 0;
+  max-width: 100%;
   background: linear-gradient(180deg, var(--bg-3), var(--bg-2));
   border: var(--hairline) solid var(--edge-mid);
   border-radius: var(--radius-md);
@@ -466,6 +468,15 @@ body {
      — across a grid of cards that is a repaint storm for no visible gain, so
      the shadow swaps instantly while the lift itself is what the eye follows. */
   transition: transform 0.16s ease;
+}
+
+.ran-attention-table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Lift on hover — the plate rises off the sheet and its shadow lengthens,

@@ -114,11 +114,11 @@ export function RegionGlobe({ regions }: { regions: string[] }) {
       <circle className="globe-glow" cx="320" cy="190" r="171" filter="url(#globe-glow)" />
       <path className="globe-ocean" d={path({ type: 'Sphere' }) || ''} />
       <path className="globe-grid" d={path(geoGraticule10()) || ''} />
-      {collection.features.map((country: Feature<Geometry, { name?: string }>) => {
+      {collection.features.map((country: Feature<Geometry, { name?: string }>, countryIndex) => {
         const id = String(country.id || '').padStart(3, '0')
         const code = countries.numericToAlpha2(id)
         const count = code ? activeRegions.get(code) || 0 : 0
-        return <path key={id} className={count ? 'globe-country active' : 'globe-country'} d={path(country) || ''}><title>{country.properties?.name || id}{count ? ` · ${count} 台服务器` : ''}</title></path>
+        return <path key={`${id}-${countryIndex}`} className={count ? 'globe-country active' : 'globe-country'} d={path(country) || ''}><title>{country.properties?.name || id}{count ? ` · ${count} 台服务器` : ''}</title></path>
       })}
       <g className="globe-arcs">{arcs.map(arc => <LaserBeam key={arc.key} from={arc.from} to={arc.to} projection={projection} delayMs={arc.delayMs} />)}</g>
       <g className="globe-points">{locations.map(location => <g key={location.code} className="laser-origin"><path className="region-point-halo" d={haloPath({ type: 'Point', coordinates: location.coordinates }) || ''} /><path className="region-point" d={pointPath({ type: 'Point', coordinates: location.coordinates }) || ''}><title>{location.code} · {location.count} 台服务器</title></path></g>)}</g>

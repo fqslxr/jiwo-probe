@@ -19,6 +19,7 @@ const GLOBAL_THEMES = [
   { value: 'premium', label: 'Premium' },
   { value: 'ran', label: '岚 · Ran' },
   { value: 'glassmorphism', label: 'Glassmorphism' },
+  { value: 'emerald', label: 'Emerald' },
 ] as const
 
 function activeBase(): string {
