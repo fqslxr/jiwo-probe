@@ -2437,6 +2437,45 @@ function PremiumNetworkView({
   )
 }
 
+type PremiumTrafficDay = NonNullable<ProbeServer['daily_traffic']>[number] & {
+  missing?: boolean
+}
+
+function premiumTrafficWindow(samples: ProbeServer['daily_traffic']): PremiumTrafficDay[] {
+  const rows = (samples || [])
+    .map((sample) => {
+      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(sample.date)
+      if (!match) return null
+      const timestamp = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      const date = new Date(timestamp).toISOString().slice(0, 10)
+      if (date !== match[0]) return null
+      return { sample: { ...sample, date }, timestamp }
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((left, right) => left.timestamp - right.timestamp)
+
+  // 没有真实日流量时保持图表空白，不生成占位日期。
+  if (!rows.length) return []
+
+  const latestTimestamp = rows[rows.length - 1].timestamp
+  const earliestTimestamp = rows[0].timestamp
+  const spanDays = Math.floor((latestTimestamp - earliestTimestamp) / 86_400_000) + 1
+  const count = Math.min(14, Math.max(7, spanDays))
+  const byDate = new Map(rows.map(({ sample }) => [sample.date, sample]))
+
+  return Array.from({ length: count }, (_, index) => {
+    const timestamp = latestTimestamp - (count - index - 1) * 86_400_000
+    const date = new Date(timestamp).toISOString().slice(0, 10)
+    return byDate.get(date) ?? {
+      date,
+      uplink: 0,
+      downlink: 0,
+      total: 0,
+      missing: true,
+    }
+  })
+}
+
 function PremiumServerCard({
   server,
   index,
@@ -2468,7 +2507,7 @@ function PremiumServerCard({
   const code = serverRegionKey(server)
   const flag = countryFlag(code) || server.region || ''
   const health = serverHealth(server)
-  const dailyTraffic = (server.daily_traffic || []).slice(-14)
+  const dailyTraffic = premiumTrafficWindow(server.daily_traffic)
   const maxDailyTraffic = Math.max(
     1,
     ...dailyTraffic.map((day) => day.total || day.uplink + day.downlink)
@@ -2545,15 +2584,28 @@ function PremiumServerCard({
         <div className='premium-probe-card-traffic'>
           <span>周期流量</span>
           <strong>{trafficValue}</strong>
-          <i aria-label='每日流量柱状图'>
+          <i
+            aria-label={
+              dailyTraffic.length
+                ? `每日流量柱状图，近 ${dailyTraffic.length} 日`
+                : '每日流量柱状图，暂无数据'
+            }
+          >
             {dailyTraffic.map((day) => {
               const total = day.total || day.uplink + day.downlink
               return (
                 <b
                   key={day.date}
-                  title={`${day.date} · ${formatTrafficCompact(total)}`}
+                  className={day.missing ? 'is-empty' : undefined}
+                  title={
+                    day.missing
+                      ? `${day.date} · 暂无数据`
+                      : `${day.date} · ${formatTrafficCompact(total)}`
+                  }
                   style={{
-                    height: `${Math.max(8, (total / maxDailyTraffic) * 100)}%`,
+                    height: day.missing
+                      ? 0
+                      : `${Math.max(8, (total / maxDailyTraffic) * 100)}%`,
                   }}
                 />
               )

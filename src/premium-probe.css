@@ -2879,6 +2879,13 @@
   box-shadow: 0 0 6px rgba(216, 180, 106, 0.28);
 }
 
+.premium-probe-card-traffic > i b.is-empty {
+  height: 0;
+  min-height: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .premium-probe-card-latency .premium-probe-interactive-chart {
   width: 100%;
   max-width: 100%;
