@@ -1544,22 +1544,45 @@ function luminaPulseColor(level: number): string {
   return 'color-mix(in srgb, var(--status-warning) 70%, var(--status-error) 30%)'
 }
 
+function luminaTrafficWindow(samples: ProbeServer['daily_traffic'], dots?: number) {
+  const rows = (samples || [])
+    .map((sample) => {
+      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(sample.date)
+      if (!match) return null
+      const timestamp = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      if (!Number.isFinite(timestamp)) return null
+      const date = new Date(timestamp).toISOString().slice(0, 10)
+      return { sample: { ...sample, date }, timestamp }
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((a, b) => a.timestamp - b.timestamp)
+
+  // 完全没有有效数据时保持空白，不生成看似真实的 0 流量日期。
+  if (!rows.length) return []
+
+  const count = dots ?? Math.min(14, Math.max(7, rows.length))
+  const latestTimestamp = rows[rows.length - 1].timestamp
+  const byDate = new Map(rows.map(({ sample }) => [sample.date, sample]))
+
+  return Array.from({ length: count }, (_, index) => {
+    const timestamp = latestTimestamp - (count - index - 1) * 86_400_000
+    const date = new Date(timestamp).toISOString().slice(0, 10)
+    return byDate.get(date) ?? { date, uplink: 0, downlink: 0, total: 0 }
+  })
+}
+
 function LuminaTrafficPulse({ samples, dots }: { samples: ProbeServer['daily_traffic']; dots?: number }) {
-  // 自适应: 数据有几天显示几根, 上限14天; 传 dots 则固定根数
-  const list = (samples || []).slice(-(dots ?? 14))
-  const count = dots ?? list.length
+  // 有数据时至少展示连续 7 个自然日，缺失日补 0；完全无数据时保持空白。
+  const list = luminaTrafficWindow(samples, dots)
   const max = Math.max(1, ...list.map((item) => item.total ?? 0))
   return (
     <span className="lumina-traffic-pulse" aria-hidden>
-      {Array.from({ length: count }, (_, index) => {
-        const sample = list[index - Math.max(0, count - list.length)]
-        // 无数据的天(历史不足16天): 渲染空白格, 不画灰条(避免"没流量"假象)
-        if (!sample) return <span key={index} className="lumina-pulse-empty" />
+      {list.map((sample) => {
         const value = sample.total ?? 0
         const level = value / max
         return (
           <span
-            key={index}
+            key={sample.date}
             data-active={value > 0 ? 'true' : 'false'}
             title={`${sample.date}\n上行 ${bytes(sample.uplink)}\n下行 ${bytes(sample.downlink)}`}
             style={

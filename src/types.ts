@@ -38,6 +38,7 @@ export interface ProbeServer {
   traffic_stats_mode?: 'both' | 'upload' | 'download' | 'max'
   traffic_adjustment?: number
   traffic_used_scope?: 'configured_period' | 'counter_since_reset' | string
+  traffic_used_estimated?: boolean
   period_start?: string
   period_end?: string
   daily_traffic_scope?:
@@ -46,6 +47,7 @@ export interface ProbeServer {
     | string
   daily_traffic_start?: string
   daily_traffic_end?: string
+  daily_traffic_estimated?: boolean
   boot_traffic_up?: number
   boot_traffic_down?: number
   boot_traffic_scope?: 'current_boot' | string

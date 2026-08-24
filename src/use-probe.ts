@@ -72,7 +72,9 @@ function enrichPayload(payload: ProbePayload): ProbePayload {
   const next: DailyHistory = prev && typeof prev === 'object' ? JSON.parse(JSON.stringify(prev)) : {}
   for (const server of payload.servers) {
     const name = server.name?.trim()
-    if (!name || !Array.isArray(server.daily_traffic)) continue
+    // ProbeHub 的估算历史由 Durable Object 统一保存；不再写入访客 localStorage，
+    // 避免主控恢复真实 daily_traffic 后旧估算数据继续混入。
+    if (!name || server.daily_traffic_estimated || !Array.isArray(server.daily_traffic)) continue
     next[name] = next[name] ?? {}
     for (const row of server.daily_traffic) {
       if (!row?.date) continue

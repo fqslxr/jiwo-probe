@@ -14,6 +14,72 @@ const HUB_MIN_POLL_MS = 3_000
 const HUB_MAX_POLL_MS = 60_000
 const HUB_NAME = 'global'
 const HUB_CLIENT_TAG = 'probe-client'
+const ESTIMATED_TRAFFIC_STORAGE_KEY = 'probe-estimated-daily-traffic-v1'
+const ESTIMATED_TRAFFIC_RETENTION_DAYS = 30
+const ESTIMATED_TRAFFIC_FLUSH_MS = 5 * 60 * 1_000
+
+interface EstimatedDailyTrafficRow {
+  uplink: number
+  downlink: number
+  total: number
+}
+
+interface EstimatedServerTraffic {
+  lastUp: number
+  lastDown: number
+  lastSeenAt: number
+  days: Record<string, EstimatedDailyTrafficRow>
+}
+
+type EstimatedTrafficState = Record<string, EstimatedServerTraffic>
+
+type MutableProbeServer = Record<string, unknown> & {
+  name?: string
+  period_start?: string
+  period_end?: string
+  daily_traffic?: Array<{
+    date?: string
+    uplink?: number
+    downlink?: number
+    total?: number
+  }>
+}
+
+interface MutableProbePayload {
+  servers?: MutableProbeServer[]
+}
+
+function finiteCounter(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null
+  return value
+}
+
+function hasReportedDailyTraffic(server: MutableProbeServer): boolean {
+  return (server.daily_traffic || []).some((row) =>
+    (finiteCounter(row.uplink) || 0) > 0 ||
+    (finiteCounter(row.downlink) || 0) > 0 ||
+    (finiteCounter(row.total) || 0) > 0,
+  )
+}
+
+function needsEstimatedTraffic(server: MutableProbeServer): boolean {
+  if (hasReportedDailyTraffic(server)) return false
+  const split = [
+    finiteCounter(server.traffic_used_up),
+    finiteCounter(server.traffic_used_down),
+    finiteCounter(server.traffic_used_total),
+  ]
+  return split.every((value) => value === null || value === 0)
+}
+
+function pruneEstimatedDays(days: Record<string, EstimatedDailyTrafficRow>, now: number): void {
+  const cutoff = new Date(now - (ESTIMATED_TRAFFIC_RETENTION_DAYS - 1) * 86_400_000)
+    .toISOString()
+    .slice(0, 10)
+  for (const date of Object.keys(days)) {
+    if (date < cutoff) delete days[date]
+  }
+}
 
 type CloudflareCacheStorage = CacheStorage & { default: Cache }
 
@@ -121,11 +187,30 @@ export class ProbeHub implements DurableObject {
   private latestPayload: string | null = null
   private latestAt = 0
   private snapshotRequest: Promise<string> | null = null
+  private estimatedTraffic: EstimatedTrafficState = {}
+  private estimatedTrafficReady: Promise<void>
+  private estimatedTrafficDirty = false
+  private estimatedTrafficLastFlushAt = 0
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state
     this.env = env
     this.pollIntervalMs = hubPollIntervalMs(env)
+    this.estimatedTrafficReady = this.state.blockConcurrencyWhile(async () => {
+      const stored = await this.state.storage.get<EstimatedTrafficState>(ESTIMATED_TRAFFIC_STORAGE_KEY)
+      if (stored && typeof stored === 'object') this.estimatedTraffic = stored
+      if (await this.state.storage.getAlarm() === null) {
+        await this.state.storage.setAlarm(Date.now() + ESTIMATED_TRAFFIC_FLUSH_MS)
+      }
+    })
+  }
+
+  async alarm(): Promise<void> {
+    try {
+      await this.forceSnapshotRefresh()
+    } finally {
+      await this.state.storage.setAlarm(Date.now() + ESTIMATED_TRAFFIC_FLUSH_MS)
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -225,10 +310,109 @@ export class ProbeHub implements DurableObject {
       headers: { 'X-MMwx-Probe-Token': this.env.PROBE_TOKEN },
     })
     if (!response.ok) throw new Error(`upstream snapshot returned ${response.status}`)
-    const payload = await response.text()
-    if (!payload) throw new Error('upstream snapshot was empty')
+    const upstreamPayload = await response.text()
+    if (!upstreamPayload) throw new Error('upstream snapshot was empty')
+    const payload = await this.addEstimatedDailyTraffic(upstreamPayload)
     this.rememberAndBroadcast(payload)
     return payload
+  }
+
+  /**
+   * API Push 节点可能只上报系统累计计数，daily_traffic 与周期上下行保持为 0。
+   * ProbeHub 以累计计数差值生成共享日流量；主控一旦返回任意真实日流量即原样透传。
+   */
+  private async addEstimatedDailyTraffic(rawPayload: string): Promise<string> {
+    await this.estimatedTrafficReady
+
+    let payload: MutableProbePayload
+    try {
+      payload = JSON.parse(rawPayload) as MutableProbePayload
+    } catch {
+      return rawPayload
+    }
+    if (!Array.isArray(payload.servers)) return rawPayload
+
+    const now = Date.now()
+    const today = new Date(now).toISOString().slice(0, 10)
+
+    for (const server of payload.servers) {
+      const name = server.name?.trim()
+      const currentUp = finiteCounter(server.cumulative_up)
+      const currentDown = finiteCounter(server.cumulative_down)
+      if (!name || currentUp === null || currentDown === null) continue
+
+      let estimate = this.estimatedTraffic[name]
+      if (!estimate) {
+        estimate = {
+          lastUp: currentUp,
+          lastDown: currentDown,
+          lastSeenAt: now,
+          days: { [today]: { uplink: 0, downlink: 0, total: 0 } },
+        }
+        this.estimatedTraffic[name] = estimate
+        this.estimatedTrafficDirty = true
+      } else {
+        const uplinkDelta = currentUp >= estimate.lastUp ? currentUp - estimate.lastUp : 0
+        const downlinkDelta = currentDown >= estimate.lastDown ? currentDown - estimate.lastDown : 0
+        const row = estimate.days[today] || { uplink: 0, downlink: 0, total: 0 }
+        if (uplinkDelta > 0 || downlinkDelta > 0 || !estimate.days[today]) {
+          row.uplink += uplinkDelta
+          row.downlink += downlinkDelta
+          row.total = row.uplink + row.downlink
+          estimate.days[today] = row
+          this.estimatedTrafficDirty = true
+        }
+        estimate.lastUp = currentUp
+        estimate.lastDown = currentDown
+        estimate.lastSeenAt = now
+      }
+
+      pruneEstimatedDays(estimate.days, now)
+      if (!needsEstimatedTraffic(server)) continue
+
+      const estimatedRows = Object.entries(estimate.days)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([date, row]) => ({ date, ...row }))
+      if (!estimatedRows.length) continue
+
+      let cycleRows = estimatedRows.filter((row) =>
+        (!server.period_start || row.date >= server.period_start) &&
+        (!server.period_end || row.date < server.period_end),
+      )
+      // 个别 Push 节点会把 period_start 下发成次日；范围不含当天时，
+      // 至少展示补偿启用以来的累计值，避免“日流量有值、周期流量仍为 0”。
+      if (!cycleRows.length) cycleRows = estimatedRows
+      const cycle = cycleRows.reduce(
+        (sum, row) => ({
+          uplink: sum.uplink + row.uplink,
+          downlink: sum.downlink + row.downlink,
+          total: sum.total + row.total,
+        }),
+        { uplink: 0, downlink: 0, total: 0 },
+      )
+
+      server.daily_traffic = estimatedRows
+      server.daily_traffic_start = estimatedRows[0].date
+      server.daily_traffic_end = estimatedRows[estimatedRows.length - 1].date
+      server.daily_traffic_scope = 'probe_estimated_from_cumulative'
+      server.daily_traffic_estimated = true
+      server.traffic_used_up = cycle.uplink
+      server.traffic_used_down = cycle.downlink
+      server.traffic_used_total = cycle.total
+      server.traffic_used_scope = 'probe_estimated_from_cumulative'
+      server.traffic_used_estimated = true
+    }
+
+    if (
+      this.estimatedTrafficDirty &&
+      now - this.estimatedTrafficLastFlushAt >= ESTIMATED_TRAFFIC_FLUSH_MS
+    ) {
+      await this.state.storage.put(ESTIMATED_TRAFFIC_STORAGE_KEY, this.estimatedTraffic)
+      this.estimatedTrafficDirty = false
+      this.estimatedTrafficLastFlushAt = now
+    }
+
+    return JSON.stringify(payload)
   }
 
   private async forceSnapshotRefresh(): Promise<void> {
