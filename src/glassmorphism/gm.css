@@ -934,7 +934,11 @@ body.gm-body .detail-body {
   .gm-general-card-number { font-size: 20px; }
   .gm-general-card-unit { font-size: 11px; }
   .gm-search { order: 2; }
-  .gm-search.has-text { flex: 1; }
+  .gm-search:focus-within,
+  .gm-search.has-text {
+    flex: 1 1 100%;
+    width: 100%;
+  }
   .gm-view-switch { margin-left: auto; order: 1; }
   .gm-controls { flex-wrap: wrap; }
 }
