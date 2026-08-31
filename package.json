@@ -13,6 +13,18 @@
       },
       "PROBE_POLL_INTERVAL_SECONDS": {
         "description": "ProbeHub 从主控采集实时快照的间隔（秒），默认 3；需要降载时可设置为 5。"
+      },
+      "PROBE_BACKGROUND_URL": {
+        "description": "可选。自定义全站背景图片的 HTTPS 地址；也可填写仓库 public 目录下以 / 开头的静态资源路径。"
+      },
+      "PROBE_BACKGROUND_OVERLAY": {
+        "description": "可选。背景遮罩强度 0–0.95，默认 0.32；数值越高，文字越清晰、原图越淡。"
+      },
+      "PROBE_BACKGROUND_POSITION": {
+        "description": "可选。背景位置：center、top、bottom、left 或 right，默认 center。"
+      },
+      "PROBE_BACKGROUND_THEMES": {
+        "description": "可选。应用背景的主题名，以英文逗号分隔；默认 pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,emerald，可删除不需要的主题。"
       }
     }
   },

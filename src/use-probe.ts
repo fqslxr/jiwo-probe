@@ -1,10 +1,73 @@
 import { createContext, createElement, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { ProbeAppearance, ProbePayload, ProbeServer, ThemeName } from './types'
+import type { ProbeAppearance, ProbeBackgroundAppearance, ProbePayload, ProbeServer, ThemeName } from './types'
 
 const APPEARANCE_CACHE = 'mmwx-probe-appearance'
 const DARK_OVERRIDE = 'mmwx-probe-dark-override'
 const THEME_OVERRIDE = 'mmwx-probe-theme-override'
+let runtimeBackground: ProbeBackgroundAppearance | undefined
+let runtimeThemeConfigPromise: Promise<void> | undefined
+let lastAppliedAppearance: ProbeAppearance | undefined
+
+function safeBackgroundUrl(value: string): string | null {
+  const raw = value.trim()
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw
+  try {
+    const parsed = new URL(raw)
+    return parsed.protocol === 'https:' ? parsed.toString() : null
+  } catch {
+    return null
+  }
+}
+
+function applyCustomBackground(appearance: ProbeAppearance, theme: string): void {
+  const root = document.documentElement
+  const background = runtimeBackground || appearance.background
+  const url = background?.url ? safeBackgroundUrl(background.url) : null
+  const family = /^ran(-|$)/i.test(theme) ? 'ran' : theme.toLowerCase()
+  const allowedThemes = background?.themes?.map((item) => item.toLowerCase()) || []
+  const applies = !!url && (
+    !allowedThemes.length ||
+    allowedThemes.includes('all') ||
+    allowedThemes.includes(theme.toLowerCase()) ||
+    allowedThemes.includes(family)
+  )
+
+  root.classList.toggle('probe-custom-background', applies)
+  if (!applies || !background || !url) {
+    root.style.removeProperty('--probe-background-image')
+    root.style.removeProperty('--probe-background-overlay')
+    root.style.removeProperty('--probe-background-overlay-percent')
+    root.style.removeProperty('--probe-background-position')
+    return
+  }
+
+  const overlay = Number.isFinite(background.overlay)
+    ? Math.min(0.95, Math.max(0, Number(background.overlay)))
+    : 0.32
+  const position = ['center', 'top', 'bottom', 'left', 'right'].includes(background.position || '')
+    ? background.position
+    : 'center'
+  root.style.setProperty('--probe-background-image', `url(${JSON.stringify(url)})`)
+  root.style.setProperty('--probe-background-overlay', String(overlay))
+  root.style.setProperty('--probe-background-overlay-percent', `${Math.round(overlay * 100)}%`)
+  root.style.setProperty('--probe-background-position', position || 'center')
+}
+
+function loadRuntimeThemeConfig(): Promise<void> {
+  if (runtimeThemeConfigPromise) return runtimeThemeConfigPromise
+  runtimeThemeConfigPromise = fetch('/api/theme-config', { cache: 'no-store' })
+    .then(async (response) => {
+      if (!response.ok) return
+      const config = await response.json() as { background?: ProbeBackgroundAppearance }
+      if (config.background?.url) runtimeBackground = config.background
+      if (lastAppliedAppearance) applyAppearance(lastAppliedAppearance)
+    })
+    .catch(() => {
+      // 旧版 Worker 没有该接口时继续使用主控下发或主题默认背景。
+    })
+  return runtimeThemeConfigPromise
+}
 
 // ===== 日流量跨周期历史(浏览器本地缓存, 保留 90 天) =====
 // 主控 daily_traffic 只含当前重置周期, 重置即清零 → 前端把每次 payload 合并进
@@ -119,6 +182,7 @@ export function applyAppearance(input?: ProbeAppearance) {
     }
   })()
   const appearance = input || cached || { theme: 'pixel', color_mode: 'light' }
+  lastAppliedAppearance = appearance
   const themeOverride = localStorage.getItem(THEME_OVERRIDE) as ThemeName | null
   // 用户手动选择的内置主题优先；否则用主控下发的主题名。
   // 内置主题名大小写不敏感归一化（主控可能下发 Lumina/LUMINA → lumina）；
@@ -209,6 +273,7 @@ export function applyAppearance(input?: ProbeAppearance) {
   if (theme === 'glassmorphism') {
     localStorage.setItem('gm-color-mode-master', parsed.light === undefined ? 'auto' : parsed.light ? 'light' : 'dark')
   }
+  applyCustomBackground(appearance, theme)
   root.dataset.themeReady = 'true'
   if (input) localStorage.setItem(APPEARANCE_CACHE, JSON.stringify(input))
 }
@@ -339,6 +404,7 @@ function useProbeConnection(): ProbeState {
     }
 
     applyAppearance()
+    void loadRuntimeThemeConfig()
     // 先轮询一次拿首帧数据, 同时连 WS; 之后由 watchdog 统一裁决:
     // WS 有帧 → 暂停轮询(帧即数据, 免每 5s 打主控一次);
     // WS 无帧 15s / 关闭 / 出错 → 恢复轮询兜底。

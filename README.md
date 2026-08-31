@@ -30,7 +30,7 @@
 - **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina → ran` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
   - **四态配色循环**（Gem 图标切换：浅 → 暗 → 黑金 → 白金）——黑金为 Lumina 专属配色：深墨绿黑底 + 金色描边/光晕 + 米白文字，顶部金色光晕；白金移植自 license.miaomiaowu.net premium light（米白底 + 暗金 #a87c22）；切换记忆在浏览器（localStorage），刷新保持
   - **黑金/白金金色体系**——非语义色收敛金色：进度条/脉冲条/剩余流量条/延迟与丢包率数值与柱条/资产总揽金额（`--accent`）/许可证徽章/spark 星光统一金色；黑金/白金两态的**进度条统一使用原版 premium 黑金渐变**（深金 `#8f651d` → 亮金 `#e5c367`，含二级详情页 .meter）；进度条轨道用详情页同款 `color-mix(border 70%)` 暗轨道（全主题自适应）；状态语义色保留（绿在线/红离线/黄到期），趋势图多线区分色保留
-- **液态玻璃主题**（第 4 主题）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
+- **玻璃主题**（第 4 主题）——重新设计为可读性优先的现代磨砂玻璃：低噪声冷色环境光、三层玻璃透明度、顶部细高光、克制阴影，桌面/手机与详情页统一适配
 - **主控自定义主题**——主控后台可下发任意主题名，探针原样挂 `theme-{name}` CSS 类（站长可在探针 CSS 里写 `:root.theme-{name}` 覆盖，无对应样式自动回退默认）；内置主题名大小写不敏感归一化（主控下发 `Lumina` 正确应用本地 lumina 主题）；用户手动切换主题优先于主控下发
 
 #### 主控后台切换主题（核心能力）
@@ -66,6 +66,28 @@
 
 优先级：**主控明确下发变体 > 用户手动选过（浏览器记忆）> 本地缓存 > 默认**。探针实时监听主控下发（WS/轮询新帧），切换无需刷新页面。
 - 做过性能优化：backdrop-filter 合成层从 50+ 降到 2 层（仅顶部栏和遮罩），低 CPU / 低耗电，手机不发烫
+
+#### Cloudflare 自定义背景
+
+无需修改或重新打包前端。进入 Cloudflare 的 **Workers & Pages → mmwx-probe → Settings → Variables and Secrets**，添加或编辑下列运行时变量，保存并部署后刷新页面即可。支持任意 HTTPS 图片链接；如果希望图片也存放在 Cloudflare，可先上传到 **R2（公开桶/自定义域名）或 Cloudflare Images**，再把生成的 HTTPS 地址填入 `PROBE_BACKGROUND_URL`。
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `PROBE_BACKGROUND_URL` | 空 | 图片 HTTPS 地址；也支持仓库 `public` 目录中以 `/` 开头的静态资源路径 |
+| `PROBE_BACKGROUND_OVERLAY` | `0.32` | 遮罩强度 `0–0.95`，越高文字越清晰、图片越淡 |
+| `PROBE_BACKGROUND_POSITION` | `center` | `center` / `top` / `bottom` / `left` / `right` |
+| `PROBE_BACKGROUND_THEMES` | `pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,emerald` | 应用主题，英文逗号分隔；删除不需要背景的主题即可 |
+
+完整配置示例：
+
+```text
+PROBE_BACKGROUND_URL=https://example.com/background.webp
+PROBE_BACKGROUND_OVERLAY=0.32
+PROBE_BACKGROUND_POSITION=center
+PROBE_BACKGROUND_THEMES=pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,emerald
+```
+
+仓库已在 `package.json` 声明这四项配置，并在 Worker 代码中提供默认值和校验。站点自己的图片地址不会硬编码到仓库，避免公开站点配置；`wrangler.jsonc` 启用了 `keep_vars`，因此从 Cloudflare 后台设置的变量不会被普通代码部署删除。背景配置由 Worker 的公开只读接口下发，不包含任何 Secret，请勿在这些变量中填写 token。未设置图片、链接无效或当前主题不在应用范围时，会自动回退到主题原生背景。
 
 ### 数据与交互增强
 
@@ -155,8 +177,12 @@ ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不�
    | `MMWX_ORIGIN` | Text | 主控 HTTPS 地址，例如 `https://panel.example.com` |
    | `PROBE_TOKEN` | Secret | 主控"系统设置 → 探针"生成的访问密钥 |
    | `PROBE_POLL_INTERVAL_SECONDS` | Text（可选） | 实时快照间隔，默认 `3`；降载时可设为 `5` |
+   | `PROBE_BACKGROUND_URL` | Text（可选） | 自定义背景图片 HTTPS 地址 |
+   | `PROBE_BACKGROUND_OVERLAY` | Text（可选） | 背景遮罩强度，默认 `0.32` |
+   | `PROBE_BACKGROUND_POSITION` | Text（可选） | 背景位置，默认 `center` |
+   | `PROBE_BACKGROUND_THEMES` | Text（可选） | 默认 `pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,emerald`，可删除不需要的主题 |
 
-   注意这里是 Worker 的运行时 **Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。
+   注意这里是 Worker 的运行时 **Settings → Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。`PROBE_BACKGROUND_THEMES` 默认已经包含全部九个内置主题，不需要背景的主题可从列表中删除。
    Durable Object 绑定和首次命名空间创建已经写在 `wrangler.jsonc`，构建部署时会自动完成，**不需要在 Dashboard 手动创建或开启 ProbeHub**。
 5. 打开 Worker 地址，确认服务器列表、趋势图和实时更新正常。
 6. 最后回到主控，开启"仅允许独立探针访问"。此后直接访问主控的探针接口会返回 `404`。

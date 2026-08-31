@@ -4,6 +4,10 @@ interface Env {
   PROBE_TOKEN: string
   PROBE_HUB: DurableObjectNamespace
   PROBE_POLL_INTERVAL_SECONDS?: string
+  PROBE_BACKGROUND_URL?: string
+  PROBE_BACKGROUND_OVERLAY?: string
+  PROBE_BACKGROUND_POSITION?: string
+  PROBE_BACKGROUND_THEMES?: string
 }
 
 const PROBE_CACHE_TTL_SECONDS = 3
@@ -17,6 +21,46 @@ const HUB_CLIENT_TAG = 'probe-client'
 const ESTIMATED_TRAFFIC_STORAGE_KEY = 'probe-estimated-daily-traffic-v1'
 const ESTIMATED_TRAFFIC_RETENTION_DAYS = 30
 const ESTIMATED_TRAFFIC_FLUSH_MS = 5 * 60 * 1_000
+const BACKGROUND_POSITIONS = new Set(['center', 'top', 'bottom', 'left', 'right'])
+const DEFAULT_BACKGROUND_THEMES = 'pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,emerald'
+
+function runtimeThemeConfig(env: Env): Record<string, unknown> {
+  const rawUrl = env.PROBE_BACKGROUND_URL?.trim()
+  if (!rawUrl) return {}
+
+  let url: string
+  try {
+    if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+      url = rawUrl
+    } else {
+      const parsed = new URL(rawUrl)
+      if (parsed.protocol !== 'https:') return {}
+      url = parsed.toString()
+    }
+  } catch {
+    return {}
+  }
+
+  const parsedOverlay = Number(env.PROBE_BACKGROUND_OVERLAY)
+  const overlay = Number.isFinite(parsedOverlay)
+    ? Math.min(0.95, Math.max(0, parsedOverlay))
+    : 0.32
+  const requestedPosition = env.PROBE_BACKGROUND_POSITION?.trim().toLowerCase() || 'center'
+  const position = BACKGROUND_POSITIONS.has(requestedPosition) ? requestedPosition : 'center'
+  const themes = (env.PROBE_BACKGROUND_THEMES || DEFAULT_BACKGROUND_THEMES)
+    .split(',')
+    .map((theme) => theme.trim().toLowerCase())
+    .filter((theme) => theme === 'all' || /^[a-z0-9_-]{1,64}$/.test(theme))
+
+  return {
+    background: {
+      url,
+      overlay,
+      position,
+      themes: themes.length ? themes : DEFAULT_BACKGROUND_THEMES.split(','),
+    },
+  }
+}
 
 interface EstimatedDailyTrafficRow {
   uplink: number
@@ -490,6 +534,18 @@ export default {
     const incoming = new URL(request.url)
     if (incoming.pathname === '/login') {
       return Response.redirect(new URL('/login', env.MMWX_ORIGIN).toString(), 302)
+    }
+
+    // 运行时主题配置只包含公开的显示参数，不返回任何 Worker Secret。
+    if (incoming.pathname === '/api/theme-config') {
+      if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 })
+      return Response.json(runtimeThemeConfig(env), {
+        headers: {
+          'Cache-Control': 'public, max-age=60',
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
     }
 
     // 访客信息（Ran 主题访客浮卡用）——直接读 CF 请求头，不调用第三方

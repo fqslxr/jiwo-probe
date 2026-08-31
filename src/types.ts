@@ -1,9 +1,20 @@
 export type ThemeName = 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald'
 
+export interface ProbeBackgroundAppearance {
+  url: string
+  /** 0 = 原图，1 = 完全被主题底色覆盖。 */
+  overlay?: number
+  /** CSS background-position，默认 center。 */
+  position?: 'center' | 'top' | 'bottom' | 'left' | 'right'
+  /** all 或逗号分隔后得到的主题名；省略时应用到全部主题。 */
+  themes?: string[]
+}
+
 export interface ProbeAppearance {
   theme: ThemeName
   color_mode?: 'light' | 'dark' | 'system'
   revision?: string
+  background?: ProbeBackgroundAppearance
 }
 
 export interface ProbeBucket {

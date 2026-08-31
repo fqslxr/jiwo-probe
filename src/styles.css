@@ -2929,34 +2929,51 @@ footer a:hover {
   font-weight: 600;
 }
 
-/* ===== 液态玻璃主题（Liquid Glass）=====
-   区别于毛玻璃: 更低不透明度让背景色彩透出、渐变表面模拟玻璃厚度、
-   顶部镜面高光 + 斜向光泽扫过(::before)、饱和光斑背景、悬浮彩色阴影 */
+/* ===== 玻璃主题（Glass）=====
+   克制的环境光 + 可读性优先的磨砂层级。所有核心容器共用同一玻璃材质，
+   通过透明度、边框与阴影区分主面板、内层信息和浮层。 */
 :root.theme-glass {
-  --primary: #6366f1;
-  --radius: 20px;
-  --page-bg: #e8ecff;
-  --shadow: 0 18px 50px rgba(79, 70, 229, 0.16);
-  --surface: rgba(255, 255, 255, 0.24);
-  --border: rgba(255, 255, 255, 0.62);
-  --muted: #6b7280;
-  --foreground: #172033;
-  --accent: #6366f1;
+  color-scheme: light;
+  --primary: #087f9f;
+  --accent: #0e7490;
+  --radius: 18px;
+  --page-bg: #eaf2f5;
+  --foreground: #102a35;
+  --muted: #5a6f7a;
+  --surface: rgba(255, 255, 255, 0.68);
+  --border: rgba(255, 255, 255, 0.78);
+  --shadow: 0 18px 44px rgba(30, 64, 79, 0.12);
+  --glass-surface: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(244, 250, 252, 0.57));
+  --glass-surface-strong: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(244, 250, 252, 0.78));
+  --glass-surface-soft: rgba(255, 255, 255, 0.38);
+  --glass-border: rgba(255, 255, 255, 0.82);
+  --glass-border-strong: rgba(122, 164, 179, 0.38);
+  --glass-shadow: 0 18px 44px rgba(30, 64, 79, 0.12), 0 3px 10px rgba(30, 64, 79, 0.06);
+  --glass-shadow-hover: 0 22px 52px rgba(23, 93, 116, 0.17), 0 5px 14px rgba(30, 64, 79, 0.08);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --glass-blur: blur(22px) saturate(130%);
+  --glass-focus: 0 0 0 3px rgba(8, 127, 159, 0.16);
+  --globe-ocean-light: #dff5fa;
+  --globe-ocean-dark: #b7e4ed;
 }
 :root.theme-glass .app-shell {
   background:
-    radial-gradient(1200px 700px at 8% -10%, rgba(129, 140, 248, 0.55), transparent 60%),
-    radial-gradient(950px 620px at 92% 4%, rgba(34, 211, 238, 0.5), transparent 58%),
-    radial-gradient(850px 600px at 55% 32%, rgba(232, 121, 249, 0.32), transparent 60%),
-    radial-gradient(1100px 750px at 18% 108%, rgba(52, 211, 153, 0.4), transparent 62%),
-    linear-gradient(135deg, #e8ecff 0%, #f6f3ff 45%, #eaf6ff 100%);
+    radial-gradient(900px 560px at 8% -8%, rgba(60, 191, 221, 0.24), transparent 64%),
+    radial-gradient(800px 520px at 96% 12%, rgba(109, 152, 255, 0.18), transparent 63%),
+    radial-gradient(860px 600px at 42% 110%, rgba(82, 203, 177, 0.14), transparent 65%),
+    linear-gradient(145deg, #edf5f7 0%, #e7f0f4 52%, #eef4f7 100%);
+  background-attachment: fixed;
+}
+:root.theme-glass .app-shell ::selection {
+  color: #fff;
+  background: rgba(8, 127, 159, 0.72);
 }
 :root.theme-glass .topbar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
-  backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 6px 24px rgba(79, 70, 229, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.66);
+  background: rgba(239, 248, 250, 0.7);
+  box-shadow: 0 8px 28px rgba(30, 64, 79, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
 }
 :root.theme-glass .summary-card,
 :root.theme-glass .probe-toolbar,
@@ -2964,176 +2981,258 @@ footer a:hover {
 :root.theme-glass .server-mini-card,
 :root.theme-glass .globe-card,
 :root.theme-glass .leaderboard-card,
+:root.theme-glass .server-table-wrap,
 :root.theme-glass .modal,
 :root.theme-glass .detail-cols > div,
 :root.theme-glass .detail-panel {
   position: relative;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow:
-    0 18px 50px rgba(79, 70, 229, 0.16),
-    0 4px 12px rgba(79, 70, 229, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  border-color: var(--glass-border);
+  background: var(--glass-surface);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
-/* 斜向镜面光泽扫过（液态玻璃特征） */
 :root.theme-glass .summary-card::before,
 :root.theme-glass .probe-toolbar::before,
 :root.theme-glass .server-card::before,
 :root.theme-glass .server-mini-card::before,
 :root.theme-glass .globe-card::before,
 :root.theme-glass .leaderboard-card::before,
+:root.theme-glass .server-table-wrap::before,
 :root.theme-glass .modal::before,
 :root.theme-glass .detail-cols > div::before,
-:root.theme-glass .detail-panel::before {
+:root.theme-glass .detail-panel::before,
+:root.theme-glass .server-detail::before {
   content: '';
   position: absolute;
-  inset: 0;
+  z-index: 1;
+  top: 0;
+  right: 10%;
+  left: 10%;
+  height: 1px;
   pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+}
+:root.theme-glass .summary-card > *,
+:root.theme-glass .probe-toolbar > *,
+:root.theme-glass .server-card > *,
+:root.theme-glass .server-mini-card > *,
+:root.theme-glass .globe-card > *,
+:root.theme-glass .leaderboard-card > *,
+:root.theme-glass .modal > *,
+:root.theme-glass .detail-cols > div > *,
+:root.theme-glass .detail-panel > * {
+  position: relative;
+  z-index: 2;
 }
 :root.theme-glass .server-card:hover,
 :root.theme-glass .server-mini-card:hover {
-  border-color: rgba(99, 102, 241, 0.55);
-  box-shadow:
-    0 24px 60px rgba(79, 70, 229, 0.24),
-    0 6px 16px rgba(79, 70, 229, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--glass-border));
+  box-shadow: var(--glass-shadow-hover), var(--glass-inset);
 }
-:root.theme-glass .region-menu {
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow:
-    0 18px 50px rgba(79, 70, 229, 0.16),
-    0 4px 12px rgba(79, 70, 229, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-:root.dark.theme-glass .region-menu {
-  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.4),
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+:root.theme-glass .server-title,
+:root.theme-glass .server-detail-header {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.1));
 }
 :root.theme-glass .node-stats button,
+:root.theme-glass .speed-summary,
+:root.theme-glass .assets-main,
+:root.theme-glass .detail-value-main,
+:root.theme-glass .detail-speed > span,
+:root.theme-glass .detail-hw > span {
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background: var(--glass-surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+:root.theme-glass .node-stats button {
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+:root.theme-glass .node-stats button:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+  background: rgba(255, 255, 255, 0.55);
+  transform: translateY(-1px);
+}
+:root.theme-glass .node-stats strong,
+:root.theme-glass .speed-summary strong,
+:root.theme-glass .assets-main strong,
+:root.theme-glass .metric-head strong,
+:root.theme-glass .ping-head strong {
+  letter-spacing: -0.015em;
+}
+:root.theme-glass .meter,
+:root.theme-glass .speed-progress {
+  background: rgba(91, 126, 139, 0.17);
+  box-shadow: inset 0 1px 2px rgba(16, 42, 53, 0.08);
+}
+:root.theme-glass .meter i,
+:root.theme-glass .speed-progress i {
+  background: linear-gradient(90deg, #14b8a6, #159ac2);
+}
 :root.theme-glass .filters button,
 :root.theme-glass .region-trigger,
 :root.theme-glass .server-search,
 :root.theme-glass .leaderboard-tabs button,
-:root.theme-glass .ranges button {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+:root.theme-glass .ranges button,
+:root.theme-glass .topbar button,
+:root.theme-glass .trend-mode-switch button,
+:root.theme-glass .ping-head select {
+  border-color: rgba(255, 255, 255, 0.66);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
-:root.theme-glass .filters button.active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 70%, #000) 0%, var(--primary) 100%);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+:root.theme-glass button:not(:disabled),
+:root.theme-glass .region-trigger,
+:root.theme-glass .server-search {
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
+:root.theme-glass .filters button:hover,
+:root.theme-glass .region-trigger:hover,
+:root.theme-glass .leaderboard-tabs button:hover,
+:root.theme-glass .ranges button:hover,
+:root.theme-glass .topbar button:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--glass-border));
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.56);
+}
+:root.theme-glass button:focus-visible,
+:root.theme-glass input:focus-visible,
+:root.theme-glass select:focus-visible,
+:root.theme-glass .server-search:focus-within,
+:root.theme-glass .region-trigger[aria-expanded='true'] {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 58%, transparent);
+  box-shadow: var(--glass-focus);
+}
+:root.theme-glass .filters button.active,
 :root.theme-glass .topbar button.active,
-:root.theme-glass .ranges button.active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 70%, #000) 0%, var(--primary) 100%);
+:root.theme-glass .ranges button.active,
+:root.theme-glass .leaderboard-tabs button.active,
+:root.theme-glass .trend-mode-switch button.active {
+  border-color: rgba(255, 255, 255, 0.48);
   color: #fff;
+  background: linear-gradient(145deg, #0d91b5, #08748f);
+  box-shadow: 0 7px 18px rgba(8, 127, 159, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-:root.theme-glass .modal-backdrop {
-  background: rgba(99, 102, 241, 0.12);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+:root.theme-glass .filters button.active.warning {
+  border-color: #d97706;
+  color: #fff !important;
+  background: linear-gradient(145deg, #f59e0b, #c96b04);
+  box-shadow: 0 7px 18px rgba(217, 119, 6, 0.2);
 }
-:root.theme-glass .server-detail-backdrop {
-  background: rgba(99, 102, 241, 0.12);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+:root.theme-glass .filters button.active.danger {
+  border-color: #dc2626;
+  color: #fff !important;
+  background: linear-gradient(145deg, #ef4444, #c61f2b);
+  box-shadow: 0 7px 18px rgba(220, 38, 38, 0.2);
 }
-:root.theme-glass .server-detail {
-  position: relative;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow:
-    0 28px 70px rgba(79, 70, 229, 0.2),
-    0 6px 16px rgba(79, 70, 229, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+:root.theme-glass .region-menu {
+  border-color: var(--glass-border-strong);
+  background: var(--glass-surface-strong);
+  box-shadow: 0 18px 46px rgba(30, 64, 79, 0.2), var(--glass-inset);
+  backdrop-filter: blur(28px) saturate(135%);
+  -webkit-backdrop-filter: blur(28px) saturate(135%);
 }
-:root.theme-glass .server-detail::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
+:root.theme-glass .region-menu button:hover {
+  color: var(--foreground);
+  background: rgba(8, 127, 159, 0.1);
 }
-:root.theme-glass .server-detail-header {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+:root.theme-glass .ping-head select option {
+  color: var(--foreground);
+  background: #eef6f8;
+}
+:root.theme-glass .route-badge-animation.gold,
+:root.theme-glass .route-badge-animation.silver,
+:root.theme-glass .route-badge-text.gold,
+:root.theme-glass .route-badge-text.silver {
+  border-color: rgba(8, 127, 159, 0.24);
+}
+:root.theme-glass .route-badge-animation.gold,
+:root.theme-glass .route-badge-animation.silver {
+  background: rgba(255, 255, 255, 0.34);
+}
+:root.theme-glass .route-badge-text.gold,
+:root.theme-glass .route-badge-text.silver {
+  color: #155e75;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(207, 238, 243, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 :root.theme-glass .server-table {
-  position: relative;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  border-radius: var(--radius);
-  box-shadow:
-    0 18px 50px rgba(79, 70, 229, 0.16),
-    0 4px 12px rgba(79, 70, 229, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  background: transparent;
 }
-:root.theme-glass .server-table::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
+:root.theme-glass .server-table th {
+  background: rgba(255, 255, 255, 0.28);
 }
 :root.theme-glass .server-table tbody tr {
   background: transparent;
 }
 :root.theme-glass .server-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
 }
 :root.theme-glass .table-row-link:hover {
-  background: rgba(99, 102, 241, 0.1) !important;
+  background: rgba(8, 127, 159, 0.09) !important;
+}
+:root.theme-glass .modal-backdrop,
+:root.theme-glass .server-detail-backdrop {
+  background: rgba(20, 48, 60, 0.25);
+  backdrop-filter: blur(14px) saturate(115%);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+}
+:root.theme-glass .server-detail {
+  position: relative;
+  border-color: var(--glass-border-strong);
+  background: var(--glass-surface-strong);
+  box-shadow: 0 28px 72px rgba(20, 48, 60, 0.25), var(--glass-inset);
+  backdrop-filter: blur(32px) saturate(130%);
+  -webkit-backdrop-filter: blur(32px) saturate(130%);
+}
+:root.theme-glass .server-detail-header {
+  border-bottom-color: rgba(122, 164, 179, 0.24);
+  background: rgba(245, 251, 252, 0.8);
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+}
+:root.theme-glass .detail-cols > div,
+:root.theme-glass .detail-panel {
+  padding: 14px;
 }
 :root.dark.theme-glass {
-  --page-bg: #0c1024;
-  --surface: rgba(28, 34, 66, 0.28);
-  --border: rgba(148, 163, 184, 0.26);
-  --muted: #a1a8c3;
-  --foreground: #e5e7eb;
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
-  --accent: #818cf8;
-  color: #e5e7eb;
+  color-scheme: dark;
+  --primary: #4bd4f2;
+  --accent: #67e8f9;
+  --page-bg: #07131d;
+  --foreground: #edf8fb;
+  --muted: #9eb4be;
+  --surface: rgba(10, 28, 40, 0.68);
+  --border: rgba(164, 215, 230, 0.17);
+  --shadow: 0 20px 52px rgba(0, 0, 0, 0.32);
+  --glass-surface: linear-gradient(145deg, rgba(24, 49, 63, 0.72), rgba(8, 25, 37, 0.6));
+  --glass-surface-strong: linear-gradient(145deg, rgba(27, 52, 66, 0.94), rgba(8, 24, 35, 0.92));
+  --glass-surface-soft: rgba(142, 210, 226, 0.055);
+  --glass-border: rgba(175, 224, 237, 0.18);
+  --glass-border-strong: rgba(175, 224, 237, 0.26);
+  --glass-shadow: 0 20px 52px rgba(0, 0, 0, 0.34), 0 3px 12px rgba(0, 0, 0, 0.24);
+  --glass-shadow-hover: 0 24px 62px rgba(0, 0, 0, 0.42), 0 7px 18px rgba(23, 154, 190, 0.08);
+  --glass-inset: inset 0 1px 0 rgba(224, 247, 252, 0.1);
+  --glass-focus: 0 0 0 3px rgba(75, 212, 242, 0.16);
+  --globe-ocean-light: #143446;
+  --globe-ocean-dark: #0b2332;
+  color: var(--foreground);
 }
 :root.dark.theme-glass .app-shell {
   background:
-    radial-gradient(1200px 700px at 8% -10%, rgba(79, 70, 229, 0.4), transparent 60%),
-    radial-gradient(950px 620px at 92% 4%, rgba(14, 116, 144, 0.38), transparent 58%),
-    radial-gradient(850px 600px at 55% 32%, rgba(134, 25, 143, 0.3), transparent 60%),
-    radial-gradient(1100px 750px at 18% 108%, rgba(16, 120, 90, 0.32), transparent 62%),
-    linear-gradient(135deg, #0c1024 0%, #141230 45%, #0c1b2e 100%);
+    radial-gradient(900px 560px at 8% -8%, rgba(22, 136, 166, 0.2), transparent 64%),
+    radial-gradient(820px 540px at 96% 10%, rgba(53, 101, 183, 0.17), transparent 64%),
+    radial-gradient(900px 620px at 40% 112%, rgba(20, 124, 101, 0.12), transparent 66%),
+    linear-gradient(145deg, #07131d 0%, #091923 50%, #07121c 100%);
+  background-attachment: fixed;
 }
-:root.dark.theme-glass .summary-card,
-:root.dark.theme-glass .probe-toolbar,
-:root.dark.theme-glass .server-card,
-:root.dark.theme-glass .server-mini-card,
-:root.dark.theme-glass .globe-card,
-:root.dark.theme-glass .leaderboard-card,
-:root.dark.theme-glass .modal,
-:root.dark.theme-glass .detail-cols > div,
-:root.dark.theme-glass .detail-panel,
-:root.dark.theme-glass .server-table {
-  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.4),
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+:root.dark.theme-glass .topbar {
+  border-bottom-color: rgba(175, 224, 237, 0.13);
+  background: rgba(7, 22, 32, 0.74);
+  box-shadow: 0 9px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(224, 247, 252, 0.08);
 }
 :root.dark.theme-glass .summary-card::before,
 :root.dark.theme-glass .probe-toolbar::before,
@@ -3141,59 +3240,261 @@ footer a:hover {
 :root.dark.theme-glass .server-mini-card::before,
 :root.dark.theme-glass .globe-card::before,
 :root.dark.theme-glass .leaderboard-card::before,
+:root.dark.theme-glass .server-table-wrap::before,
 :root.dark.theme-glass .modal::before,
 :root.dark.theme-glass .detail-cols > div::before,
 :root.dark.theme-glass .detail-panel::before,
-:root.dark.theme-glass .server-table::before {
-  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.07) 46%, rgba(255, 255, 255, 0.02) 58%, transparent 76%);
-}
-:root.dark.theme-glass .server-detail {
-  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  box-shadow:
-    0 28px 70px rgba(0, 0, 0, 0.45),
-    0 6px 16px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
-}
 :root.dark.theme-glass .server-detail::before {
-  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.07) 46%, rgba(255, 255, 255, 0.02) 58%, transparent 76%);
+  background: linear-gradient(90deg, transparent, rgba(224, 247, 252, 0.28), transparent);
 }
+:root.dark.theme-glass .server-title,
 :root.dark.theme-glass .server-detail-header {
-  background: linear-gradient(180deg, rgba(48, 58, 105, 0.5), rgba(24, 30, 60, 0.3));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-:root.dark.theme-glass .server-detail-backdrop {
-  background: rgba(3, 5, 15, 0.5);
-}
-:root.dark.theme-glass .topbar {
-  background: linear-gradient(180deg, rgba(40, 48, 92, 0.5), rgba(20, 25, 50, 0.24));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(166, 226, 239, 0.07), rgba(5, 18, 28, 0.04));
 }
 :root.dark.theme-glass .node-stats button,
+:root.dark.theme-glass .speed-summary,
+:root.dark.theme-glass .assets-main,
+:root.dark.theme-glass .detail-value-main,
+:root.dark.theme-glass .detail-speed > span,
+:root.dark.theme-glass .detail-hw > span {
+  border-color: rgba(175, 224, 237, 0.11);
+  box-shadow: inset 0 1px 0 rgba(224, 247, 252, 0.06);
+}
+:root.dark.theme-glass .node-stats button:hover {
+  background: rgba(142, 210, 226, 0.09);
+}
 :root.dark.theme-glass .filters button,
 :root.dark.theme-glass .region-trigger,
 :root.dark.theme-glass .server-search,
 :root.dark.theme-glass .leaderboard-tabs button,
-:root.dark.theme-glass .ranges button {
-  background: linear-gradient(180deg, rgba(52, 62, 112, 0.5), rgba(28, 34, 66, 0.28));
-  border-color: rgba(148, 163, 184, 0.25);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+:root.dark.theme-glass .ranges button,
+:root.dark.theme-glass .topbar button,
+:root.dark.theme-glass .trend-mode-switch button,
+:root.dark.theme-glass .ping-head select {
+  border-color: rgba(175, 224, 237, 0.14);
+  background: rgba(142, 210, 226, 0.06);
+  box-shadow: inset 0 1px 0 rgba(224, 247, 252, 0.06);
 }
-:root.dark.theme-glass .filters button.active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent));
-  box-shadow: 0 6px 18px rgba(129, 140, 248, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+:root.dark.theme-glass .filters button:hover,
+:root.dark.theme-glass .region-trigger:hover,
+:root.dark.theme-glass .leaderboard-tabs button:hover,
+:root.dark.theme-glass .ranges button:hover,
+:root.dark.theme-glass .topbar button:hover {
+  border-color: rgba(75, 212, 242, 0.34);
+  background: rgba(75, 212, 242, 0.09);
+}
+:root.dark.theme-glass .filters button.active,
+:root.dark.theme-glass .topbar button.active,
+:root.dark.theme-glass .ranges button.active,
+:root.dark.theme-glass .leaderboard-tabs button.active,
+:root.dark.theme-glass .trend-mode-switch button.active {
+  border-color: rgba(174, 236, 248, 0.34);
+  color: #031319;
+  background: linear-gradient(145deg, #69def4, #24abc9);
+  box-shadow: 0 8px 20px rgba(31, 182, 216, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+:root.dark.theme-glass .region-menu {
+  background: var(--glass-surface-strong);
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.5), var(--glass-inset);
+}
+:root.dark.theme-glass .ping-head select option {
+  color: var(--foreground);
+  background: #102633;
+}
+:root.dark.theme-glass .route-badge-animation.gold,
+:root.dark.theme-glass .route-badge-animation.silver {
+  border-color: rgba(75, 212, 242, 0.18);
+  background: rgba(75, 212, 242, 0.05);
+}
+:root.dark.theme-glass .route-badge-text.gold,
+:root.dark.theme-glass .route-badge-text.silver {
+  border-color: rgba(75, 212, 242, 0.18);
+  color: #c8f4fb;
+  background: linear-gradient(145deg, rgba(58, 135, 151, 0.32), rgba(19, 62, 76, 0.36));
+  box-shadow: inset 0 1px 0 rgba(224, 247, 252, 0.08);
+}
+:root.dark.theme-glass .server-table th {
+  background: rgba(142, 210, 226, 0.055);
 }
 :root.dark.theme-glass .server-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.045);
+  background: rgba(142, 210, 226, 0.035);
 }
-:root.dark.theme-glass .modal-backdrop {
-  background: rgba(3, 5, 15, 0.5);
+:root.dark.theme-glass .modal-backdrop,
+:root.dark.theme-glass .server-detail-backdrop {
+  background: rgba(1, 8, 13, 0.62);
 }
-:root.theme-glass .detail-cols > div,
-:root.theme-glass .detail-panel {
-  padding: 14px;
+:root.dark.theme-glass .server-detail {
+  background: var(--glass-surface-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.58), var(--glass-inset);
+}
+:root.dark.theme-glass .server-detail-header {
+  border-bottom-color: rgba(175, 224, 237, 0.13);
+  background: rgba(8, 27, 39, 0.86);
+}
+@media (max-width: 760px) {
+  :root.theme-glass {
+    --radius: 16px;
+    --glass-blur: blur(17px) saturate(122%);
+    --glass-shadow: 0 12px 30px rgba(30, 64, 79, 0.1), 0 2px 8px rgba(30, 64, 79, 0.05);
+  }
+  :root.dark.theme-glass {
+    --glass-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 2px 9px rgba(0, 0, 0, 0.2);
+  }
+  :root.theme-glass .topbar {
+    background: rgba(239, 248, 250, 0.84);
+    backdrop-filter: blur(19px) saturate(125%);
+    -webkit-backdrop-filter: blur(19px) saturate(125%);
+  }
+  :root.dark.theme-glass .topbar {
+    background: rgba(7, 22, 32, 0.86);
+  }
+  :root.theme-glass .summary-card,
+  :root.theme-glass .probe-toolbar,
+  :root.theme-glass .server-card,
+  :root.theme-glass .server-mini-card,
+  :root.theme-glass .globe-card,
+  :root.theme-glass .leaderboard-card,
+  :root.theme-glass .server-table-wrap,
+  :root.theme-glass .detail-panel {
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+  }
+  :root.theme-glass .server-card:hover,
+  :root.theme-glass .server-mini-card:hover,
+  :root.theme-glass .node-stats button:hover {
+    transform: none;
+  }
+  :root.theme-glass .server-detail-backdrop {
+    padding: 7px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  :root.theme-glass .server-detail {
+    border-radius: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.theme-glass .server-card,
+  :root.theme-glass .server-mini-card,
+  :root.theme-glass button,
+  :root.theme-glass .region-trigger,
+  :root.theme-glass .server-search {
+    transition: none;
+  }
+}
+
+/* ===== Cloudflare 运行时自定义背景 =====
+   URL/遮罩由 /api/theme-config 下发。所有布局只替换最底层画布，卡片与语义色保持主题原样。 */
+:root.probe-custom-background .app-shell {
+  background-color: var(--page-bg, #edf3f5);
+  background-image:
+    linear-gradient(
+      rgb(237 245 247 / var(--probe-background-overlay, 0.32)),
+      rgb(231 241 244 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: center, var(--probe-background-position, center) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+:root.dark.probe-custom-background .app-shell,
+:root.gold.probe-custom-background .app-shell {
+  background-image:
+    linear-gradient(
+      rgb(5 15 24 / var(--probe-background-overlay, 0.32)),
+      rgb(7 20 29 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+}
+:root.platinum.probe-custom-background .app-shell {
+  background-image:
+    linear-gradient(
+      rgb(246 242 232 / var(--probe-background-overlay, 0.32)),
+      rgb(239 235 225 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+}
+:root.probe-custom-background .gm-bg {
+  background-image: var(--probe-background-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: var(--probe-background-position, center) !important;
+  background-size: cover !important;
+}
+:root.probe-custom-background .gm-app .gm-bg::after {
+  background: rgb(7 16 25 / var(--probe-background-overlay, 0.32));
+}
+:root.probe-custom-background .gm-app.gm-light .gm-bg::after {
+  background: rgb(238 243 248 / var(--probe-background-overlay, 0.32));
+}
+:root.probe-custom-background .emerald-app {
+  background-color: var(--em-bg);
+  background-image:
+    linear-gradient(
+      rgb(247 249 252 / var(--probe-background-overlay, 0.32)),
+      rgb(242 247 247 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: center, var(--probe-background-position, center) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+:root.dark.probe-custom-background .emerald-app {
+  background-image:
+    linear-gradient(
+      rgb(5 17 14 / var(--probe-background-overlay, 0.32)),
+      rgb(7 24 19 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+}
+:root.probe-custom-background.theme-premium,
+:root.probe-custom-background.theme-premium body {
+  background-color: #080909;
+  background-image:
+    linear-gradient(
+      rgb(8 9 9 / var(--probe-background-overlay, 0.32)),
+      rgb(12 12 10 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: center, var(--probe-background-position, center) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+:root.platinum.probe-custom-background.theme-premium,
+:root.platinum.probe-custom-background.theme-premium body {
+  background-color: #f4f0e7;
+  background-image:
+    linear-gradient(
+      rgb(244 240 231 / var(--probe-background-overlay, 0.32)),
+      rgb(239 235 224 / var(--probe-background-overlay, 0.32))
+    ),
+    var(--probe-background-image) !important;
+}
+:root.probe-custom-background body[data-theme] {
+  background-color: var(--bg-0);
+  background-image: var(--probe-background-image) !important;
+  background-repeat: no-repeat !important;
+  background-position: var(--probe-background-position, center) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+:root.probe-custom-background body[data-theme] #root > div {
+  background: color-mix(
+    in srgb,
+    var(--bg-0) var(--probe-background-overlay-percent, 68%),
+    transparent
+  ) !important;
+}
+@media (max-width: 760px) {
+  :root.probe-custom-background .app-shell,
+  :root.probe-custom-background .emerald-app,
+  :root.probe-custom-background.theme-premium,
+  :root.probe-custom-background.theme-premium body,
+  :root.probe-custom-background body[data-theme] {
+    /* 手机端禁用 fixed 背景，避免滚动时整屏重绘。 */
+    background-attachment: scroll !important;
+  }
 }
 @media (max-width: 760px) {
   .detail-speed {
