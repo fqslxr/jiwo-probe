@@ -3590,23 +3590,23 @@ footer a:hover {
 /* Lumina 黑金配色（Premium 黑金风格移植, 第三配色） */
 :root.theme-lumina.gold {
   color-scheme: dark;
-  color: #f3ecdc;
-  --primary: #d8b46a;
-  --page-bg: #0a0b0a;
-  --surface: #14160f;
-  --border: rgba(216, 180, 106, 0.34);
-  --muted: #8f8674;
-  --foreground: #f3ecdc;
+  color: #f2eadb;
+  --primary: #dfb65a;
+  --page-bg: #080806;
+  --surface: #12110e;
+  --border: #705a34;
+  --muted: #aaa08e;
+  --foreground: #f2eadb;
   --shadow: 0 0 0 rgba(0, 0, 0, 0);
-  --hover-bg: #1e2018;
-  --accent: #d8b46a;
-  --progress-cpu: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-memory: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-swap: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-disk: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-network: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-load: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-bg: rgba(243, 236, 220, 0.14);
+  --hover-bg: #2b2519;
+  --accent: #dfb65a;
+  --progress-cpu: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-memory: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-swap: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-disk: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-network: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-load: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-bg: rgba(242, 234, 219, 0.14);
   --status-success: #57ab5a;
   --status-warning: #daaa3f;
   --status-error: #ef5b64;
@@ -3711,23 +3711,23 @@ footer a:hover {
 /* ===== 白金配色(lumina 第四配色, license.miaomiaowu.net premium light 移植, 2026-08-14) ===== */
 :root.theme-lumina.platinum {
   color-scheme: light;
-  color: #241e14;
-  --primary: #a87c22;
-  --page-bg: #f7f4ec;
-  --surface: #fffdf8;
-  --border: rgba(168, 124, 34, 0.28);
-  --muted: #746b5c;
-  --foreground: #241e14;
+  color: #24211b;
+  --primary: #a67c2e;
+  --page-bg: #f4f3ef;
+  --surface: #fffefa;
+  --border: #b8aa90;
+  --muted: #746e63;
+  --foreground: #24211b;
   --shadow: 0 0 0 rgba(0, 0, 0, 0);
-  --hover-bg: #f1e8d5;
-  --accent: #d8b46a;
-  --progress-cpu: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-memory: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-swap: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-disk: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-network: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-load: linear-gradient(90deg, #8f651d, #e5c367);
-  --progress-bg: rgba(168, 124, 34, 0.14);
+  --hover-bg: #efede8;
+  --accent: #b88c37;
+  --progress-cpu: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-memory: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-swap: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-disk: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-network: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-load: linear-gradient(90deg, #b87b1e, #e3bd63);
+  --progress-bg: rgba(166, 124, 46, 0.14);
   --status-success: #2f7d3c;
   --status-warning: #a87c22;
   --status-error: #c0342c;
@@ -4512,5 +4512,235 @@ footer a:hover {
   }
   .trend-mode-switch button {
     padding: 1px 6px;
+  }
+}
+
+/* ===== Lumina · 主控白金 / 黑金毛玻璃视觉迁移 =====
+   只覆盖材质与配色；卡片数据、趋势图、地球及交互逻辑保持不变。 */
+:root.theme-lumina {
+  --lumina-glass-card: color-mix(in srgb, var(--surface) 72%, transparent);
+  --lumina-glass-panel: color-mix(in srgb, var(--surface) 82%, transparent);
+  --lumina-glass-control: color-mix(in srgb, var(--surface) 74%, transparent);
+  --lumina-card-shadow: 0 12px 30px rgba(47, 42, 32, 0.07);
+  --lumina-active-gradient: linear-gradient(105deg, #b87b1e, #e3bd63);
+  --lumina-active-gradient-hover: linear-gradient(105deg, #c98e2d, #f0d58a);
+}
+
+:root.theme-lumina.dark,
+:root.theme-lumina.gold {
+  --lumina-glass-card: color-mix(in srgb, var(--surface) 70%, transparent);
+  --lumina-glass-panel: color-mix(in srgb, var(--surface) 82%, transparent);
+  --lumina-glass-control: color-mix(in srgb, var(--surface) 76%, transparent);
+  --lumina-card-shadow: 0 16px 34px rgba(0, 0, 0, 0.25);
+}
+
+/* 页面画布继续读取 PROBE_BACKGROUND_URL；没有自定义背景时使用主题底色。 */
+:root.theme-lumina .app-shell {
+  background-color: var(--page-bg);
+}
+
+/* 顶栏：无边框、比卡片更强的背景模糊。 */
+:root.theme-lumina .topbar {
+  border-width: 0;
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  backdrop-filter: blur(22px) saturate(1.18);
+  box-shadow: none;
+}
+
+/* 主卡片、摘要、工具栏、地球和榜单统一为无边框毛玻璃。 */
+:root.theme-lumina .server-card,
+:root.theme-lumina .lumina-card,
+:root.theme-lumina .summary-card,
+:root.theme-lumina .probe-toolbar,
+:root.theme-lumina .globe-card,
+:root.theme-lumina .leaderboard-card,
+:root.theme-lumina .server-mini-card {
+  border-width: 0 !important;
+  background: var(--lumina-glass-card) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.16);
+  backdrop-filter: blur(18px) saturate(1.16);
+  box-shadow: var(--lumina-card-shadow) !important;
+}
+
+:root.theme-lumina .lumina-card:hover,
+:root.theme-lumina .summary-card:hover,
+:root.theme-lumina .probe-toolbar:hover,
+:root.theme-lumina .globe-card:hover,
+:root.theme-lumina .leaderboard-card:hover,
+:root.theme-lumina .server-mini-card:hover {
+  transform: none;
+  border-color: transparent !important;
+  background: var(--lumina-glass-card) !important;
+  box-shadow: var(--lumina-card-shadow) !important;
+}
+
+:root.theme-lumina .lumina-card.is-offline {
+  background: color-mix(in srgb, var(--status-error) 5%, var(--lumina-glass-card)) !important;
+}
+
+/* 原黑金/白金卡片扫光依赖边框，改为无边框后同步关闭。 */
+:root.theme-lumina.gold .lumina-card::after,
+:root.theme-lumina.gold .summary-card::after,
+:root.theme-lumina.gold .globe-card::after,
+:root.theme-lumina.gold .leaderboard-card::after,
+:root.theme-lumina.platinum .lumina-card::after,
+:root.theme-lumina.platinum .summary-card::after,
+:root.theme-lumina.platinum .globe-card::after,
+:root.theme-lumina.platinum .leaderboard-card::after {
+  content: none;
+  animation: none;
+}
+
+/* 详情页、弹窗与下拉菜单保留 1px 结构线，使用更强的浮层玻璃。 */
+:root.theme-lumina .server-detail,
+:root.theme-lumina .modal,
+:root.theme-lumina .region-menu {
+  border: 1px solid color-mix(in srgb, var(--border) 78%, var(--primary));
+  background: var(--lumina-glass-panel);
+  -webkit-backdrop-filter: blur(22px) saturate(1.16);
+  backdrop-filter: blur(22px) saturate(1.16);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+}
+
+:root.theme-lumina.dark .server-detail,
+:root.theme-lumina.dark .modal,
+:root.theme-lumina.dark .region-menu,
+:root.theme-lumina.gold .server-detail,
+:root.theme-lumina.gold .modal,
+:root.theme-lumina.gold .region-menu {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
+}
+
+:root.theme-lumina .server-detail-header {
+  border-bottom-width: 1px;
+  border-bottom-color: color-mix(in srgb, var(--border) 78%, var(--primary));
+  background: var(--lumina-glass-panel);
+  -webkit-backdrop-filter: blur(18px) saturate(1.14);
+  backdrop-filter: blur(18px) saturate(1.14);
+}
+
+:root.theme-lumina .detail-panel {
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--border) 78%, var(--primary));
+  background: var(--lumina-glass-control);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+:root.theme-lumina .node-stats button,
+:root.theme-lumina .speed-summary,
+:root.theme-lumina .assets-main {
+  background: var(--lumina-glass-control);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+:root.theme-lumina .chart-fixed-y-axis,
+:root.theme-lumina .recharts-default-tooltip {
+  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+}
+
+/* 未选中的按钮无金框；保留透明边框占位，避免切换时尺寸跳动。 */
+:root.theme-lumina .topbar button:not(.active),
+:root.theme-lumina .filters button:not(.active),
+:root.theme-lumina .leaderboard-tabs button:not(.active),
+:root.theme-lumina .trend-mode-switch button:not(.active),
+:root.theme-lumina .ranges button:not(.active) {
+  border-color: transparent;
+  background: var(--lumina-glass-control);
+  -webkit-backdrop-filter: blur(18px) saturate(1.16);
+  backdrop-filter: blur(18px) saturate(1.16);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.24) inset;
+}
+
+:root.theme-lumina .topbar button:not(.active):hover,
+:root.theme-lumina .filters button:not(.active):hover,
+:root.theme-lumina .leaderboard-tabs button:not(.active):hover,
+:root.theme-lumina .trend-mode-switch button:not(.active):hover,
+:root.theme-lumina .ranges button:not(.active):hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--surface) 48%, transparent);
+}
+
+/* 搜索、地区选择与详情选择器仍保留 1px 输入结构线。 */
+:root.theme-lumina .server-search,
+:root.theme-lumina .region-trigger,
+:root.theme-lumina .ping-head select,
+:root.theme-lumina .detail-ping-picker select {
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--border) 82%, var(--primary));
+  background: var(--lumina-glass-control);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+/* 黑金/白金选中项与主要状态使用主控同款暖金渐变。 */
+:root.theme-lumina.gold .topbar button.active,
+:root.theme-lumina.gold .filters button.active:not(.warning):not(.danger),
+:root.theme-lumina.gold .leaderboard-tabs button.active,
+:root.theme-lumina.gold .trend-mode-switch button.active,
+:root.theme-lumina.gold .ranges button.active,
+:root.theme-lumina.platinum .topbar button.active,
+:root.theme-lumina.platinum .filters button.active:not(.warning):not(.danger),
+:root.theme-lumina.platinum .leaderboard-tabs button.active,
+:root.theme-lumina.platinum .trend-mode-switch button.active,
+:root.theme-lumina.platinum .ranges button.active {
+  color: #171107;
+  border-color: rgba(168, 124, 34, 0.68);
+  background: var(--lumina-active-gradient);
+  box-shadow:
+    0 1px 0 rgba(255, 241, 185, 0.46) inset,
+    0 5px 14px -9px rgba(184, 123, 30, 0.78);
+}
+
+:root.theme-lumina.gold .topbar button.active:hover,
+:root.theme-lumina.gold .filters button.active:not(.warning):not(.danger):hover,
+:root.theme-lumina.gold .leaderboard-tabs button.active:hover,
+:root.theme-lumina.gold .trend-mode-switch button.active:hover,
+:root.theme-lumina.gold .ranges button.active:hover,
+:root.theme-lumina.platinum .topbar button.active:hover,
+:root.theme-lumina.platinum .filters button.active:not(.warning):not(.danger):hover,
+:root.theme-lumina.platinum .leaderboard-tabs button.active:hover,
+:root.theme-lumina.platinum .trend-mode-switch button.active:hover,
+:root.theme-lumina.platinum .ranges button.active:hover {
+  background: var(--lumina-active-gradient-hover);
+}
+
+:root.theme-lumina.gold .lumina-state.online,
+:root.theme-lumina.platinum .lumina-state.online {
+  color: #171107;
+  border-color: rgba(168, 124, 34, 0.68);
+  background: var(--lumina-active-gradient);
+  box-shadow: 0 1px 0 rgba(255, 241, 185, 0.42) inset;
+}
+
+/* 黑金与白金的实时速度、资源占用和周期流量统一为金色渐变。 */
+:root.theme-lumina.gold .speed-progress i,
+:root.theme-lumina.gold .speed-summary.up .speed-progress i,
+:root.theme-lumina.gold .lumina-meter i,
+:root.theme-lumina.platinum .speed-progress i,
+:root.theme-lumina.platinum .speed-summary.up .speed-progress i,
+:root.theme-lumina.platinum .lumina-meter i {
+  background: linear-gradient(90deg, #b87b1e, #e3bd63);
+  box-shadow: 0 0 9px -2px #a87c22;
+}
+
+@media (max-width: 760px) {
+  :root.theme-lumina .topbar {
+    -webkit-backdrop-filter: blur(18px) saturate(1.16);
+    backdrop-filter: blur(18px) saturate(1.16);
+  }
+
+  :root.theme-lumina .server-card,
+  :root.theme-lumina .lumina-card,
+  :root.theme-lumina .summary-card,
+  :root.theme-lumina .probe-toolbar,
+  :root.theme-lumina .globe-card,
+  :root.theme-lumina .leaderboard-card,
+  :root.theme-lumina .server-mini-card {
+    -webkit-backdrop-filter: blur(16px) saturate(1.14);
+    backdrop-filter: blur(16px) saturate(1.14);
   }
 }

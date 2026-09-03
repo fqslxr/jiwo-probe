@@ -192,44 +192,41 @@ export function applyAppearance(input?: ProbeAppearance) {
   const parsed = parseThemeName(raw)
   const theme = parsed.theme
   const root = document.documentElement
-  // 清理所有 theme-* 类（含可能的自定义主题类），再挂当前主题
+  const themeClass = `theme-${theme}`
+  // 数据帧每 3 秒会重新应用外观。只在主题真的变化时改 class，避免先删再加
+  // 触发 sticky + backdrop-filter 顶栏重建合成层，造成规律性闪屏。
   for (const cls of [...root.classList]) {
-    if (cls.startsWith('theme-')) root.classList.remove(cls)
+    if (cls.startsWith('theme-') && cls !== themeClass) root.classList.remove(cls)
   }
+  if (!root.classList.contains(themeClass)) root.classList.add(themeClass)
   // Ran 主题把 data-theme 挂在 body 上作为自身配色 tokens 的载体,
   // 这里只在切到非 Ran 主题时才清(ran 组件卸载后残留会污染其他主题文字色);
   // Ran 系主题必须保留, 否则轮询每帧清掉 data-theme 会导致 Ran 页面全白。
   if (!/^ran(-|$)/i.test(theme)) {
     document.body.removeAttribute('data-theme')
   }
-  root.classList.remove('dark')
-  root.classList.remove('gold')
-  root.classList.remove('platinum')
-  root.classList.add(`theme-${theme}`)
   const darkOverride = localStorage.getItem(DARK_OVERRIDE)
-  let dark: boolean
+  let dark = false
+  let gold = false
+  let platinum = false
   // premium 配色三态(auto/白金/黑金, 由 PremiumProbePage 控制 localStorage premium-probe-color-mode):
   // applyAppearance 在 WS/轮询每帧(5s)都会跑, 必须尊重三态, 否则 remove('platinum') 会冲掉
   // auto/手动白金类造成白金黑金横跳(2026-08-17 用户实测)
   if (theme === 'premium') {
     const premiumMode = localStorage.getItem('premium-probe-color-mode')
     if (premiumMode === 'platinum') {
-      root.classList.add('platinum')
-      dark = false
+      platinum = true
     } else if (premiumMode === 'auto') {
       const now = new Date()
       const hour = (now.getUTCHours() + 8) % 24 // 北京时间(UTC+8)
-      root.classList.toggle('platinum', hour >= 6 && hour < 18)
-      dark = false
+      platinum = hour >= 6 && hour < 18
     } else if (premiumMode === 'dark') {
       dark = false // premium 基础样式即黑金, 不挂 dark 类
     } else if (darkOverride === 'platinum' || (parsed.platinum && !themeOverride && !darkOverride)) {
       // 未设置三态时沿用旧逻辑: 手动 darkOverride 或主控下发 premiumplatinum → 白金
-      root.classList.add('platinum')
-      dark = false
+      platinum = true
     } else if (darkOverride === 'gold') {
-      root.classList.add('gold')
-      dark = false
+      gold = true
     } else if (darkOverride === 'dark') {
       dark = true
     } else if (darkOverride === 'light') {
@@ -238,20 +235,17 @@ export function applyAppearance(input?: ProbeAppearance) {
       // 主控只写 premium 无后缀 → auto 模式: 北京时间 6:00-18:00 白金, 夜间黑金
       // (不跟随主控 color_mode 字段; 用户手动三态 premium-probe-color-mode 已在前置分支处理)
       const hour = (new Date().getUTCHours() + 8) % 24
-      root.classList.toggle('platinum', hour >= 6 && hour < 18)
-      dark = false
+      platinum = hour >= 6 && hour < 18
     }
   } else if (darkOverride === 'gold' || (parsed.gold && !themeOverride && !darkOverride)) {
     // 黑金配色（lumina 第三配色）: 不挂 dark, 挂 gold。
     // 手动 override 为 gold，或主控下发组合名且用户从未手动干预（主题/配色都没选过）才进入。
     // 用户一旦手动切过配色（darkOverride 任意值），主控的 gold 不再强制，尊重用户选择。
-    root.classList.add('gold')
-    dark = false
+    gold = true
   } else if (darkOverride === 'platinum' || (parsed.platinum && !themeOverride && !darkOverride)) {
     // 白金配色（lumina 第四配色 / premium 第二配色, license.miaomiaowu.net premium light 移植）:
     // 浅底暗金。机制与 gold 一致。
-    root.classList.add('platinum')
-    dark = false
+    platinum = true
   } else if (darkOverride === 'dark') {
     dark = true
   } else if (darkOverride === 'light') {
@@ -267,7 +261,9 @@ export function applyAppearance(input?: ProbeAppearance) {
       dark = !(hour >= 6 && hour < 18)
     }
   }
-  if (dark) root.classList.add('dark')
+  root.classList.toggle('dark', dark)
+  root.classList.toggle('gold', gold)
+  root.classList.toggle('platinum', platinum)
   // Glassmorphism 明暗下发: 写 master 缓存, GmApp 初始化/轮询时读取(用户手动切换优先)
   // 无后缀 glassmorphism = auto 模式(北京时间白天浅色/夜间深色); light/dark 后缀固定对应模式
   if (theme === 'glassmorphism') {
