@@ -4539,13 +4539,29 @@ footer a:hover {
   background-color: var(--page-bg);
 }
 
-/* 顶栏：无边框、比卡片更强的背景模糊。 */
+/* 顶栏：sticky 元素叠加 backdrop-filter 会在 Chrome 数据刷新时重建合成层，
+   产生肉眼可见的整栏抖动；保留半透明玻璃底色，但不用动态背景模糊。 */
 :root.theme-lumina .topbar {
   border-width: 0;
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
-  backdrop-filter: blur(22px) saturate(1.18);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: none;
+}
+
+/* Lumina 黑金：页首与固定许可证页尾直接使用卡片的同一背景色；
+   顶栏仍不启用动态模糊，防止再次抖动。 */
+:root.theme-lumina.gold .topbar,
+:root.theme-lumina.gold .probe-license-footer {
+  background: var(--lumina-glass-card);
+}
+
+:root.theme-lumina.gold .probe-license-footer {
+  border-top-color: rgba(223, 182, 90, 0.28);
+}
+
+:root.theme-lumina.gold .app-shell > footer {
+  color: #d8c69f;
 }
 
 /* 主卡片、摘要、工具栏、地球和榜单统一为无边框毛玻璃。 */
@@ -4637,7 +4653,24 @@ footer a:hover {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 
-:root.theme-lumina .chart-fixed-y-axis,
+/* 趋势弹窗的滚动图原本会延伸到固定纵轴下面，只能用独立底色遮挡，
+   白金毛玻璃下会形成明显的白色竖条。裁掉被纵轴覆盖的 68px 后，
+   纵轴可直接透出弹窗背景，延迟/丢包/流量/CPU/内存弹窗全部一致。 */
+:root.theme-lumina .chart-scroll {
+  clip-path: inset(0 0 0 68px);
+}
+
+:root.theme-lumina .chart-fixed-y-axis {
+  background: transparent !important;
+}
+
+:root.theme-lumina.gold .chart-fixed-y-axis text,
+:root.theme-lumina.gold .chart-fixed-y-axis .recharts-cartesian-axis-tick-value {
+  color: #fff !important;
+  fill: #fff !important;
+  opacity: 1;
+}
+
 :root.theme-lumina .recharts-default-tooltip {
   background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
 }
@@ -4729,8 +4762,8 @@ footer a:hover {
 
 @media (max-width: 760px) {
   :root.theme-lumina .topbar {
-    -webkit-backdrop-filter: blur(18px) saturate(1.16);
-    backdrop-filter: blur(18px) saturate(1.16);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   :root.theme-lumina .server-card,
