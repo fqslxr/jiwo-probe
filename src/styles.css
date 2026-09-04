@@ -4526,6 +4526,11 @@ footer a:hover {
   --lumina-active-gradient-hover: linear-gradient(105deg, #c98e2d, #f0d58a);
 }
 
+/* 浅色 / 白金：减少背景图透入卡片，恢复更干净的白色表层。 */
+:root.theme-lumina:not(.dark):not(.gold) {
+  --lumina-glass-card: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+
 :root.theme-lumina.dark,
 :root.theme-lumina.gold {
   --lumina-glass-card: color-mix(in srgb, var(--surface) 70%, transparent);
